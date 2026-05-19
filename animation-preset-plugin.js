@@ -988,8 +988,9 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
       else if (container.classList.contains('container-reveal-bottom')) direction = 'bottom';
       else if (container.classList.contains('container-reveal-left')) direction = 'left';
       else if (container.classList.contains('container-reveal-center')) direction = 'center';
+      else if (container.classList.contains('container-reveal-cinematic-gate')) direction = 'cinematic-gate';
 
-      const fullClip = 'inset(0% 0% 0% 0%)';
+      const fullClip = direction === 'cinematic-gate' ? 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)' : 'inset(0% 0% 0% 0%)';
       let startClip;
       switch (direction) {
         case 'right':
@@ -1003,6 +1004,9 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
           break;
         case 'bottom':
           startClip = 'inset(0% 0% 100% 0%)';
+          break;
+        case 'cinematic-gate':
+          startClip = 'polygon(50% 20%, 50% 20%, 50% 80%, 50% 80%)';
           break;
         default: // center-out (both vertical sides)
           startClip = 'inset(50% 0% 50% 0%)';
@@ -1037,19 +1041,13 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
       });
 
       if (isScrollScrub) {
-        gsap.fromTo(
-          container,
-          {
-            autoAlpha: 1,
-            clipPath: startClip,
-            webkitClipPath: startClip,
-            visibility: 'visible',
-          },
-          {
-            clipPath: fullClip,
-            webkitClipPath: fullClip,
-            ease,
-            immediateRender: false,
+        if (direction === 'cinematic-gate') {
+          const overlay = container.querySelector('.elementor-background-overlay');
+          if (overlay) {
+            gsap.set(overlay, { autoAlpha: 0 });
+          }
+
+          const tl = gsap.timeline({
             scrollTrigger: {
               trigger: container,
               start: scrollStart,
@@ -1065,33 +1063,144 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
                 }
               },
             },
-          }
-        );
-      } else {
-        const tl = gsap.timeline({
-          scrollTrigger: {
-            trigger: container,
-            start: startTrigger,
-            toggleActions: 'play none none none',
-          },
-        });
+          });
 
-        tl.fromTo(
-          container,
-          {
-            autoAlpha: 1,
-            clipPath: startClip,
-            webkitClipPath: startClip,
-            immediateRender: false,
-          },
-          {
-            clipPath: fullClip,
-            webkitClipPath: fullClip,
-            duration: duration,
-            ease,
-          },
-          delay
-        );
+          tl.fromTo(
+            container,
+            {
+              clipPath: 'polygon(50% 20%, 50% 20%, 50% 80%, 50% 80%)',
+              webkitClipPath: 'polygon(50% 20%, 50% 20%, 50% 80%, 50% 80%)',
+            },
+            {
+              clipPath: 'polygon(35% 20%, 65% 20%, 65% 80%, 35% 80%)',
+              webkitClipPath: 'polygon(35% 20%, 65% 20%, 65% 80%, 35% 80%)',
+              ease: 'power2.inOut',
+              duration: 0.45,
+            }
+          );
+
+          tl.to(container, {
+            clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
+            webkitClipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
+            ease: 'power4.inOut',
+            duration: 0.55,
+          });
+
+          if (overlay) {
+            tl.to(overlay, {
+              autoAlpha: 1,
+              duration: 0.5,
+            }, '<+=0.2');
+          }
+        } else {
+          gsap.fromTo(
+            container,
+            {
+              autoAlpha: 1,
+              clipPath: startClip,
+              webkitClipPath: startClip,
+              visibility: 'visible',
+            },
+            {
+              clipPath: fullClip,
+              webkitClipPath: fullClip,
+              ease,
+              immediateRender: false,
+              scrollTrigger: {
+                trigger: container,
+                start: scrollStart,
+                end: scrollEnd,
+                scrub: 0,
+                onUpdate: (self) => {
+                  if (forwardOnly) {
+                    const max = Math.max(self.progress, self._maxProgress || 0);
+                    self._maxProgress = max;
+                    if (self.progress < max) {
+                      self.animation.progress(max);
+                    }
+                  }
+                },
+              },
+            }
+          );
+        }
+      } else {
+        if (direction === 'cinematic-gate') {
+          const overlay = container.querySelector('.elementor-background-overlay');
+          if (overlay) {
+            gsap.set(overlay, { autoAlpha: 0 });
+          }
+
+          const tl = gsap.timeline({
+            scrollTrigger: {
+              trigger: container,
+              start: startTrigger,
+              toggleActions: 'play none none none',
+            },
+          });
+
+          tl.fromTo(
+            container,
+            {
+              autoAlpha: 1,
+              clipPath: 'polygon(50% 20%, 50% 20%, 50% 80%, 50% 80%)',
+              webkitClipPath: 'polygon(50% 20%, 50% 20%, 50% 80%, 50% 80%)',
+              immediateRender: false,
+            },
+            {
+              clipPath: 'polygon(35% 20%, 65% 20%, 65% 80%, 35% 80%)',
+              webkitClipPath: 'polygon(35% 20%, 65% 20%, 65% 80%, 35% 80%)',
+              duration: duration * 0.45,
+              ease: 'power2.inOut',
+            },
+            delay
+          );
+
+          tl.to(
+            container,
+            {
+              clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
+              webkitClipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
+              duration: duration * 0.55,
+              ease: 'power4.inOut',
+            },
+            `>${delay > 0 ? '' : '=-0.05'}`
+          );
+
+          if (overlay) {
+            tl.to(overlay, {
+              autoAlpha: 1,
+              duration: duration * 0.5,
+            }, '<+=0.2');
+          }
+
+          tl.set(container, { clearProps: 'clipPath,webkitClipPath' });
+        } else {
+          const tl = gsap.timeline({
+            scrollTrigger: {
+              trigger: container,
+              start: startTrigger,
+              toggleActions: 'play none none none',
+            },
+          });
+
+          tl.fromTo(
+            container,
+            {
+              autoAlpha: 1,
+              clipPath: startClip,
+              webkitClipPath: startClip,
+              immediateRender: false,
+            },
+            {
+              clipPath: fullClip,
+              webkitClipPath: fullClip,
+              duration: duration,
+              ease,
+            },
+            delay
+          );
+        }
       }
 
       container.dataset.containerRevealInit = 'true';

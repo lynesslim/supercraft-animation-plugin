@@ -613,3 +613,4 @@ body:not(.elementor-editor-active) .container-reveal-scroll {
 .container-reveal-top { --reveal-direction: top; }
 .container-reveal-bottom { --reveal-direction: bottom; }
 .container-reveal-center { --reveal-direction: center; }
+.container-reveal-cinematic-gate { --reveal-direction: cinematic-gate; }

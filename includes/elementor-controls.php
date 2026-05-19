@@ -751,6 +751,7 @@ $supercraft_controls_callback = function ($element, $section_id) {
                 'right' => __('Right', 'supercraft-anim'),
                 'top' => __('Top', 'supercraft-anim'),
                 'bottom' => __('Bottom', 'supercraft-anim'),
+                'cinematic-gate' => __('Cinematic Gate', 'supercraft-anim'),
                 'custom' => __('Custom', 'supercraft-anim'),
             ],
             'default' => 'center',

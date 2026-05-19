@@ -67,6 +67,7 @@ function applyStartStateFromStyles(el) {
     'container-reveal-right',
     'container-reveal-top',
     'container-reveal-bottom',
+    'container-reveal-cinematic-gate',
     'scroll-fill-text',
     'fade-left',
     'fade-right',

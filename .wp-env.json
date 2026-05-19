@@ -1,8 +1,8 @@
 {
   "core": "WordPress/WordPress",
   "plugins": [
-    "./local-plugins/elementor",
-    "./local-plugins/pro-elements"
+    "/Users/lynesslim/.supercraft-local-plugins/elementor",
+    "/Users/lynesslim/.supercraft-local-plugins/pro-elements"
   ],
   "themes": [
     "./local-themes/hello-elementor"
