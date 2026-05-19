@@ -874,35 +874,14 @@ function applyStartStateFromStyles(el) {
       }
       setTimeout(applyForView, 100);
 
-      // Re-initialize animations after class change
+      // Re-initialize animations after class change — must use postMessage to
+      // reach animation-preset-plugin.js which runs inside the preview iframe.
       setTimeout(() => {
-        if (window.initAllAnimations) {
-          // Kill existing triggers first
-          if (window.ScrollTrigger) {
-            ScrollTrigger.getAll().forEach(st => st.kill());
-          }
-          
-          // Remove init flags
-          document.querySelectorAll(
-            '[data-scroll-transform-init], [data-scroll-transform-scrub-init], [data-image-reveal-init], [data-container-reveal-init], [data-video-gsap-init], [data-scroll-fill-init], [data-anim-init], [data-st-init]'
-          ).forEach(el => {
-            delete el.dataset.scrollTransformInit;
-            delete el.dataset.scrollTransformScrubInit;
-            delete el.dataset.imageRevealInit;
-            delete el.dataset.containerRevealInit;
-            delete el.dataset.videoGsapInit;
-            delete el.dataset.scrollFillInit;
-            delete el.dataset.animInit;
-            delete el.dataset.stInit;
-          });
-          
-          window.initAllAnimations();
-          
-          if (window.ScrollTrigger) {
-            ScrollTrigger.refresh();
-          }
+        const iframe = document.getElementById('elementor-preview-iframe');
+        if (iframe && iframe.contentWindow) {
+          iframe.contentWindow.postMessage({ type: 'supercraft_reinit_all' }, '*');
         }
-      }, 100);
+      }, 150);
     };
 
     // Watch for changes to animation settings

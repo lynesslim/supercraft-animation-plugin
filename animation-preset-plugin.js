@@ -2285,4 +2285,29 @@ const activeIdleTimelines = new Map();
   window.initImageReveal = initImageReveal;
   window.initContainerReveal = initContainerReveal;
   window.initAdvancedAnimations = initAdvancedAnimations;
+
+  // Listen for re-init requests posted from the Elementor editor (main window → iframe)
+  window.addEventListener('message', function (e) {
+    if (!e || !e.data || e.data.type !== 'supercraft_reinit_all') return;
+    if (window.ScrollTrigger) {
+      ScrollTrigger.getAll().forEach(function (st) { st.kill(); });
+    }
+    document.querySelectorAll(
+      '[data-scroll-transform-init],[data-scroll-transform-scrub-init],[data-image-reveal-init],[data-container-reveal-init],[data-video-gsap-init],[data-scroll-fill-init],[data-anim-init],[data-advanced-init],[data-st-init]'
+    ).forEach(function (el) {
+      delete el.dataset.scrollTransformInit;
+      delete el.dataset.scrollTransformScrubInit;
+      delete el.dataset.imageRevealInit;
+      delete el.dataset.containerRevealInit;
+      delete el.dataset.videoGsapInit;
+      delete el.dataset.scrollFillInit;
+      delete el.dataset.animInit;
+      delete el.dataset.advancedInit;
+      delete el.dataset.stInit;
+    });
+    initAllAnimations();
+    setTimeout(function () {
+      if (window.ScrollTrigger) { ScrollTrigger.refresh(); }
+    }, 150);
+  });
 });
