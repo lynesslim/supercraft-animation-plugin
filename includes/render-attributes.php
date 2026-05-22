@@ -335,6 +335,12 @@ function supercraft_apply_attrs($element) {
             if ($settings['supercraft_image_scale'] !== '' && $settings['supercraft_image_scale'] !== null) {
                 $styles[] = '--reveal-image-scale:' . esc_attr($settings['supercraft_image_scale']);
             }
+            if (!empty($settings['supercraft_image_color1'])) {
+                $styles[] = '--ir-color1:' . supercraft_get_elementor_global_color_var($settings['supercraft_image_color1']);
+            }
+            if (!empty($settings['supercraft_image_color2'])) {
+                $styles[] = '--ir-color2:' . supercraft_get_elementor_global_color_var($settings['supercraft_image_color2']);
+            }
             break;
 
         case 'container-reveal':

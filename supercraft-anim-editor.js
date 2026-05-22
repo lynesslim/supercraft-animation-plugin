@@ -176,7 +176,8 @@ function applyStartStateFromStyles(el) {
           !s.startsWith('--reveal-') &&
           !s.startsWith('--scroll-fill-') &&
           !s.startsWith('--animation-') &&
-          !s.startsWith('--sc-')
+          !s.startsWith('--sc-') &&
+          !s.startsWith('--ir-')
       )
       .join(';');
     if (newStyle) {
@@ -622,6 +623,14 @@ function applyStartStateFromStyles(el) {
         }
         if (settings.supercraft_image_scale) {
           styles.push(`--reveal-image-scale:${settings.supercraft_image_scale}`);
+        }
+        if (settings.supercraft_image_color1) {
+          const color1 = getGlobalColor(settings.supercraft_image_color1);
+          if (color1) styles.push(`--ir-color1:${color1}`);
+        }
+        if (settings.supercraft_image_color2) {
+          const color2 = getGlobalColor(settings.supercraft_image_color2);
+          if (color2) styles.push(`--ir-color2:${color2}`);
         }
         break;
 

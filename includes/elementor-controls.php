@@ -739,12 +739,46 @@ $supercraft_controls_callback = function ($element, $section_id) {
                 'right' => __('Right', 'supercraft-anim'),
                 'top' => __('Top', 'supercraft-anim'),
                 'bottom' => __('Bottom', 'supercraft-anim'),
+                'envelope' => __('Double Envelope', 'supercraft-anim'),
+                'envelope-single' => __('Single Envelope', 'supercraft-anim'),
                 'custom' => __('Custom', 'supercraft-anim'),
             ],
             'default' => 'left',
             'frontend_available' => false,
             'condition' => [
                 'supercraft_anim_category' => 'image-reveal',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_image_color1',
+        [
+            'label' => __('Primary Swipe Color', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::COLOR,
+            'global' => [
+                'default' => \Elementor\Core\Kits\Documents\Tabs\Global_Colors::COLOR_PRIMARY,
+            ],
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'image-reveal',
+                'supercraft_image_preset' => ['envelope', 'envelope-single'],
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_image_color2',
+        [
+            'label' => __('Secondary Swipe Color', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::COLOR,
+            'global' => [
+                'default' => \Elementor\Core\Kits\Documents\Tabs\Global_Colors::COLOR_SECONDARY,
+            ],
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'image-reveal',
+                'supercraft_image_preset' => 'envelope',
             ],
         ]
     );
@@ -1150,7 +1184,8 @@ $supercraft_controls_callback = function ($element, $section_id) {
             'type' => \Elementor\Controls_Manager::SELECT,
             'default' => 'envelope',
             'options' => [
-                'envelope' => __('Envelope Swipe', 'supercraft-anim'),
+                'envelope' => __('Double Envelope', 'supercraft-anim'),
+                'envelope-single' => __('Single Envelope', 'supercraft-anim'),
             ],
             'frontend_available' => false,
             'condition' => [
@@ -1170,7 +1205,7 @@ $supercraft_controls_callback = function ($element, $section_id) {
             'frontend_available' => false,
             'condition' => [
                 'supercraft_anim_category' => 'text-reveal',
-                'supercraft_text_reveal_preset' => 'envelope',
+                'supercraft_text_reveal_preset' => ['envelope', 'envelope-single'],
             ],
         ]
     );

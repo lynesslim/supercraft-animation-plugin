@@ -575,6 +575,28 @@ body:not(.elementor-editor-active) .image-reveal img {
 .image-reveal-top { --reveal-direction: top; }
 .image-reveal-bottom { --reveal-direction: bottom; }
 
+/* Injected blocks for envelope preset */
+.ir-block-1,
+.ir-block-2 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  transform-origin: left;
+  transform: scaleX(0);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.ir-block-1 {
+  background-color: var(--ir-color1, transparent);
+}
+
+.ir-block-2 {
+  background-color: var(--ir-color2, transparent);
+}
+
 /* ================================
    CONTAINER REVEAL ANIMATION
    Center-out or directional mask reveal for any block

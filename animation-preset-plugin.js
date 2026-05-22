@@ -896,67 +896,94 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
         },
       });
 
-      // Determine reveal direction (left, right, top, bottom)
-      // Prefer data-attribute, then CSS var; always let helper classes override
-      const directionAttr = (container.dataset.revealDirection || '').trim().toLowerCase();
-      const directionCss = (styles.getPropertyValue('--reveal-direction') || '').trim().toLowerCase();
-      let direction = directionAttr || directionCss;
+      const isEnvelope = container.classList.contains('image-reveal-envelope') || container.classList.contains('image-reveal-envelope-single');
+      const isSingle = container.classList.contains('image-reveal-envelope-single');
 
-      // Class helpers override everything for reliability
-      if (container.classList.contains('image-reveal-right')) direction = 'right';
-      else if (container.classList.contains('image-reveal-top')) direction = 'top';
-      else if (container.classList.contains('image-reveal-bottom')) direction = 'bottom';
-      else if (container.classList.contains('image-reveal-left')) direction = 'left';
+      if (isEnvelope) {
+        // --- Envelope Animation Logic ---
+        
+        // Read colors from styles
+        let color1 = styles.getPropertyValue('--ir-color1')?.trim() || '';
+        let color2 = styles.getPropertyValue('--ir-color2')?.trim() || '';
+        if (!color1 || color1 === 'transparent') {
+          const rootStyles = getComputedStyle(document.documentElement);
+          color1 = rootStyles.getPropertyValue('--e-global-color-primary')?.trim() || '#6EC1E4';
+        }
+        if (!color2 || color2 === 'transparent') {
+          const rootStyles = getComputedStyle(document.documentElement);
+          color2 = rootStyles.getPropertyValue('--e-global-color-secondary')?.trim() || '#54595F';
+        }
 
-      if (!direction) direction = 'left';
-      const fullClip = 'inset(0% 0% 0% 0%)';
-      let startClip;
-      switch (direction) {
-        case 'right':
-          startClip = 'inset(0% 100% 0% 0%)'; // hide everything by pulling right edge in
-          break;
-        case 'top':
-          startClip = 'inset(100% 0% 0% 0%)';
-          break;
-        case 'bottom':
-          startClip = 'inset(0% 0% 100% 0%)';
-          break;
-        default: // 'left'
-          startClip = 'inset(0% 0% 0% 100%)';
+        // Inject blocks if they don't exist
+        if (!container.querySelector('.ir-block-1')) {
+          container.insertAdjacentHTML('beforeend', `<div class="ir-block-1"></div>`);
+          if (!isSingle) {
+            container.insertAdjacentHTML('beforeend', `<div class="ir-block-2"></div>`);
+          }
+        }
+        
+        const block1 = container.querySelector('.ir-block-1');
+        const block2 = isSingle ? null : container.querySelector('.ir-block-2');
+        
+        if (block1) block1.style.backgroundColor = color1;
+        if (block2) block2.style.backgroundColor = color2;
+        
+        const segmentDur = duration / 2;
+
+        tl.set(container, { autoAlpha: 1, immediateRender: true });
+        tl.set(image, { autoAlpha: 0, scale: imageScale });
+        gsap.set(block1, { scaleX: 0, transformOrigin: 'left' });
+        if (block2) gsap.set(block2, { scaleX: 0, transformOrigin: 'left' });
+
+        if (isSingle) {
+          tl.to(block1, { scaleX: 1, duration: segmentDur, ease: "power2.inOut", transformOrigin: 'left' }, delay)
+            .to(image, { autoAlpha: 1, scale: 1, duration: 0.01 })
+            .to(block1, { scaleX: 0, duration: segmentDur, ease: "power2.inOut", transformOrigin: "right" });
+        } else {
+          tl.to(block1, { scaleX: 1, duration: segmentDur, ease: "power2.inOut", transformOrigin: 'left' }, delay)
+            .to(block2, { scaleX: 1, duration: segmentDur, ease: "power2.inOut", transformOrigin: 'left' }, `-=${segmentDur * 0.5}`)
+            .to(image, { autoAlpha: 1, scale: 1, duration: 0.01 })
+            .to(block1, { scaleX: 0, duration: segmentDur, ease: "power2.inOut", transformOrigin: "right" })
+            .to(block2, { scaleX: 0, duration: segmentDur, ease: "power2.inOut", transformOrigin: "right" }, `-=${segmentDur * 0.5}`);
+        }
+
+      } else {
+        // --- Original Clip-Path Animation Logic ---
+        
+        // Determine reveal direction (left, right, top, bottom)
+        const directionAttr = (container.dataset.revealDirection || '').trim().toLowerCase();
+        const directionCss = (styles.getPropertyValue('--reveal-direction') || '').trim().toLowerCase();
+        let direction = directionAttr || directionCss;
+
+        if (container.classList.contains('image-reveal-right')) direction = 'right';
+        else if (container.classList.contains('image-reveal-top')) direction = 'top';
+        else if (container.classList.contains('image-reveal-bottom')) direction = 'bottom';
+        else if (container.classList.contains('image-reveal-left')) direction = 'left';
+
+        if (!direction) direction = 'left';
+        const fullClip = 'inset(0% 0% 0% 0%)';
+        let startClip;
+        switch (direction) {
+          case 'right': startClip = 'inset(0% 100% 0% 0%)'; break;
+          case 'top': startClip = 'inset(100% 0% 0% 0%)'; break;
+          case 'bottom': startClip = 'inset(0% 0% 100% 0%)'; break;
+          default: startClip = 'inset(0% 0% 0% 100%)';
+        }
+
+        tl.set(container, { autoAlpha: 1, immediateRender: true });
+
+        tl.fromTo(container,
+          { clipPath: startClip, webkitClipPath: startClip },
+          { clipPath: fullClip, webkitClipPath: fullClip, duration: duration, ease: ease },
+          delay
+        );
+
+        tl.from(image,
+          { scale: imageScale, duration: duration, ease: ease },
+          delay
+        );
       }
 
-      // Set container to visible
-      tl.set(container, { 
-        autoAlpha: 1,
-        immediateRender: true,
-      });
-
-      // Reveal container using polygon clip-path
-      tl.fromTo(
-        container,
-        {
-          clipPath: startClip,
-          webkitClipPath: startClip,
-        },
-        {
-          clipPath: fullClip,
-          webkitClipPath: fullClip,
-          duration: duration,
-          ease: ease,
-        },
-        delay
-      );
-
-      // Scale image simultaneously (zoom out effect)
-      tl.from(
-        image,
-        {
-          scale: imageScale,
-          duration: duration,
-          ease: ease,
-        },
-        delay // Start at same time as clip-path reveal
-      );
 
       container.dataset.imageRevealInit = 'true';
     });
@@ -2303,6 +2330,8 @@ const activeIdleTimelines = new Map();
       
       const triggerPos = computedStyles.getPropertyValue('--tr-trigger')?.trim() || 'top 85%';
       
+      const isSingle = el.classList.contains('text-reveal-envelope-single');
+      
       // Split text into lines
       let splitInstance = null;
       if (!textTarget.querySelector('.tr-line-wrapper')) {
@@ -2316,7 +2345,8 @@ const activeIdleTimelines = new Map();
           line.style.overflow = 'visible';
           
           const innerHTML = line.innerHTML;
-          line.innerHTML = `<span class="tr-envelope-mask" style="position:relative; display:inline-block; overflow:hidden;"><span class="tr-word">${innerHTML}</span><div class="tr-block-1"></div><div class="tr-block-2"></div></span>`;
+          const blocksHtml = isSingle ? `<div class="tr-block-1"></div>` : `<div class="tr-block-1"></div><div class="tr-block-2"></div>`;
+          line.innerHTML = `<span class="tr-envelope-mask" style="position:relative; display:inline-block; overflow:hidden; vertical-align: bottom;"><span class="tr-word">${innerHTML}</span>${blocksHtml}</span>`;
         });
       }
       
@@ -2346,25 +2376,31 @@ const activeIdleTimelines = new Map();
       lines.forEach((line, index) => {
         const word = line.querySelector('.tr-word');
         const block1 = line.querySelector('.tr-block-1');
-        const block2 = line.querySelector('.tr-block-2');
+        const block2 = isSingle ? null : line.querySelector('.tr-block-2');
         
-        if (!word || !block1 || !block2) return;
+        if (!word || !block1 || (!isSingle && !block2)) return;
         
         // Apply colors directly as inline styles — bypasses CSS var issues
         block1.style.backgroundColor = color1;
-        block2.style.backgroundColor = color2;
+        if (!isSingle) block2.style.backgroundColor = color2;
         
         // Reset state
         gsap.set(word, { opacity: 0 });
         gsap.set(block1, { scaleX: 0, transformOrigin: 'left' });
-        gsap.set(block2, { scaleX: 0, transformOrigin: 'left' });
+        if (!isSingle) gsap.set(block2, { scaleX: 0, transformOrigin: 'left' });
         
         const lineTl = gsap.timeline();
-        lineTl.to(block1, { scaleX: 1, duration: segmentDur, ease: "power2.inOut", transformOrigin: 'left' })
-              .to(block2, { scaleX: 1, duration: segmentDur, ease: "power2.inOut", transformOrigin: 'left' }, `-=${segmentDur * 0.5}`)
-              .to(word, { opacity: 1, duration: 0.01 })
-              .to(block1, { scaleX: 0, duration: segmentDur, ease: "power2.inOut", transformOrigin: "right" })
-              .to(block2, { scaleX: 0, duration: segmentDur, ease: "power2.inOut", transformOrigin: "right" }, `-=${segmentDur * 0.5}`);
+        if (isSingle) {
+          lineTl.to(block1, { scaleX: 1, duration: segmentDur, ease: "power2.inOut", transformOrigin: 'left' })
+                .to(word, { opacity: 1, duration: 0.01 })
+                .to(block1, { scaleX: 0, duration: segmentDur, ease: "power2.inOut", transformOrigin: "right" });
+        } else {
+          lineTl.to(block1, { scaleX: 1, duration: segmentDur, ease: "power2.inOut", transformOrigin: 'left' })
+                .to(block2, { scaleX: 1, duration: segmentDur, ease: "power2.inOut", transformOrigin: 'left' }, `-=${segmentDur * 0.5}`)
+                .to(word, { opacity: 1, duration: 0.01 })
+                .to(block1, { scaleX: 0, duration: segmentDur, ease: "power2.inOut", transformOrigin: "right" })
+                .to(block2, { scaleX: 0, duration: segmentDur, ease: "power2.inOut", transformOrigin: "right" }, `-=${segmentDur * 0.5}`);
+        }
               
         mainTl.add(lineTl, index * stagger);
       });
