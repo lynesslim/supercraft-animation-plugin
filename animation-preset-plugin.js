@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function () {
      ========================================== */
   function initCoreAnimations() {
     const elements = document.querySelectorAll(
-      '.split-text-reveal-up, .anim-fade-up, .blur-reveal, .split-text-char-fade, .split-text-char-fade-y, .split-text-char-fade-scroll, .split-text-char-fade-y-scroll, .split-text-word-fade, .split-text-word-fade-y, .split-text-word-fade-scroll, .split-text-word-fade-y-scroll, .split-text-word-fade-y-blur, .split-text-word-fade-y-blur-scroll'
+      '.split-text-reveal-up, .anim-fade-up, .blur-reveal, .split-text-char-fade, .split-text-char-fade-y, .split-text-char-fade-scroll, .split-text-char-fade-y-scroll, .split-text-word-fade, .split-text-word-fade-y, .split-text-word-fade-scroll, .split-text-word-fade-y-scroll, .split-text-word-fade-y-blur, .split-text-word-fade-y-blur-scroll, .split-text-word-mask-up, .split-text-word-mask-up-scroll, .split-text-char-mask-up, .split-text-char-mask-up-scroll'
     );
 
     elements.forEach((el) => {
@@ -67,7 +67,11 @@ document.addEventListener('DOMContentLoaded', function () {
         el.classList.contains('split-text-word-fade-scroll') ||
         el.classList.contains('split-text-word-fade-y-scroll') ||
         el.classList.contains('split-text-word-fade-y-blur') ||
-        el.classList.contains('split-text-word-fade-y-blur-scroll');
+        el.classList.contains('split-text-word-fade-y-blur-scroll') ||
+        el.classList.contains('split-text-word-mask-up') ||
+        el.classList.contains('split-text-word-mask-up-scroll') ||
+        el.classList.contains('split-text-char-mask-up') ||
+        el.classList.contains('split-text-char-mask-up-scroll');
 
       if (isSplitFade) {
         if (typeof window.SplitType !== 'function') {
@@ -96,7 +100,9 @@ document.addEventListener('DOMContentLoaded', function () {
           el.classList.contains('split-text-word-fade-scroll') ||
           el.classList.contains('split-text-word-fade-y-scroll') ||
           el.classList.contains('split-text-word-fade-y-blur') ||
-          el.classList.contains('split-text-word-fade-y-blur-scroll');
+          el.classList.contains('split-text-word-fade-y-blur-scroll') ||
+          el.classList.contains('split-text-word-mask-up') ||
+          el.classList.contains('split-text-word-mask-up-scroll');
 
         const split = new SplitType(textTarget, {
           types: isWord ? 'words' : 'words, chars',
@@ -167,7 +173,9 @@ document.addEventListener('DOMContentLoaded', function () {
           el.classList.contains('split-text-char-fade-y-blur-scroll') ||
           el.classList.contains('split-text-word-fade-scroll') ||
           el.classList.contains('split-text-word-fade-y-scroll') ||
-          el.classList.contains('split-text-word-fade-y-blur-scroll');
+          el.classList.contains('split-text-word-fade-y-blur-scroll') ||
+          el.classList.contains('split-text-word-mask-up-scroll') ||
+          el.classList.contains('split-text-char-mask-up-scroll');
 
         if (isScrollScrubbed) {
           // Scroll-scrubbed version - tied to scroll position, reversible
@@ -2330,48 +2338,127 @@ const activeIdleTimelines = new Map();
       
       const triggerPos = computedStyles.getPropertyValue('--tr-trigger')?.trim() || 'top 85%';
       
+      const isEnvelope = el.classList.contains('text-reveal-envelope') || (!el.classList.contains('text-reveal-envelope-single') && !el.classList.contains('text-reveal-decoder'));
       const isSingle = el.classList.contains('text-reveal-envelope-single');
+      const isDecoder = el.classList.contains('text-reveal-decoder');
       
-      // Split text into lines
       let splitInstance = null;
-      if (!textTarget.querySelector('.tr-line-wrapper')) {
-        splitInstance = new SplitType(textTarget, { types: 'lines', lineClass: 'tr-line-wrapper' });
-        
-        const splitLines = splitInstance.lines;
-        if (!splitLines || splitLines.length === 0) return;
-        
-        splitLines.forEach(line => {
-          line.style.position = 'relative';
-          line.style.overflow = 'visible';
-          
-          const innerHTML = line.innerHTML;
-          const blocksHtml = isSingle ? `<div class="tr-block-1"></div>` : `<div class="tr-block-1"></div><div class="tr-block-2"></div>`;
-          line.innerHTML = `<span class="tr-envelope-mask" style="position:relative; display:inline-block; overflow:hidden; vertical-align: bottom;"><span class="tr-word">${innerHTML}</span>${blocksHtml}</span>`;
-        });
-      }
       
-      const lines = textTarget.querySelectorAll('.tr-line-wrapper');
-      if (!lines || lines.length === 0) return;
-
-      const segmentDur = duration / 2;
-      const stagger = 0.15;
-
-      // Build the timeline
-      const mainTl = gsap.timeline({
-        delay: isEditor ? 0 : delay,
-        scrollTrigger: isEditor ? null : {
-          trigger: el,
-          start: triggerPos,
-          once: true
-        },
-        onComplete: () => {
-          el.removeAttribute('data-supercraft-preview-play');
-          delete el.dataset.textRevealInit;
-          if (splitInstance) {
-            splitInstance.revert();
-          }
+      if (isDecoder) {
+        // --- Decoder Animation Logic ---
+        if (!textTarget.querySelector('.char')) {
+          splitInstance = new SplitType(textTarget, { types: 'lines, words, chars' });
         }
-      });
+        
+        const charsArr = textTarget.querySelectorAll('.char');
+        if (!charsArr || charsArr.length === 0) return;
+        
+        const loop = el.dataset.trLoop === 'true';
+        const decoderDuration = parseFloat(el.dataset.trDecoderDuration) || 1.5;
+        const scrambleChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_-+=[]{}|;:,.<>?';
+        
+        // Save original characters
+        charsArr.forEach(charEl => {
+          if (!charEl.dataset.originalChar) {
+            charEl.dataset.originalChar = charEl.innerHTML;
+          }
+        });
+        
+        const createDecoderTimeline = () => {
+          const tl = gsap.timeline({
+            delay: isEditor ? 0 : delay,
+            scrollTrigger: isEditor || loop ? null : {
+              trigger: el,
+              start: triggerPos,
+              once: true
+            },
+            onComplete: () => {
+              if (loop && !isEditor) {
+                gsap.delayedCall(1, () => tl.restart());
+              } else {
+                el.removeAttribute('data-supercraft-preview-play');
+                delete el.dataset.textRevealInit;
+                if (!loop && splitInstance) {
+                  splitInstance.revert();
+                }
+              }
+            }
+          });
+          
+          charsArr.forEach((charEl, i) => {
+            const originalChar = charEl.dataset.originalChar;
+            if (originalChar === '&nbsp;' || originalChar === ' ') return;
+            
+            let proxy = { charIndex: 0 };
+            
+            tl.to(proxy, {
+              charIndex: scrambleChars.length - 1,
+              duration: decoderDuration,
+              ease: "power2.inOut",
+              onUpdate: () => {
+                const randomIndex = Math.floor(Math.random() * scrambleChars.length);
+                charEl.textContent = scrambleChars[randomIndex];
+              },
+              onComplete: () => {
+                charEl.innerHTML = originalChar;
+              }
+            }, i * 0.1);
+          });
+          
+          return tl;
+        };
+        
+        if (loop && !isEditor) {
+          ScrollTrigger.create({
+            trigger: el,
+            start: triggerPos,
+            once: true,
+            onEnter: () => createDecoderTimeline()
+          });
+        } else {
+          createDecoderTimeline();
+        }
+
+      } else {
+        // --- Envelope Animation Logic ---
+        if (!textTarget.querySelector('.tr-line-wrapper')) {
+          splitInstance = new SplitType(textTarget, { types: 'lines', lineClass: 'tr-line-wrapper' });
+          
+          const splitLines = splitInstance.lines;
+          if (!splitLines || splitLines.length === 0) return;
+          
+          splitLines.forEach(line => {
+            line.style.position = 'relative';
+            line.style.overflow = 'visible';
+            
+            const innerHTML = line.innerHTML;
+            const blocksHtml = isSingle ? `<div class="tr-block-1"></div>` : `<div class="tr-block-1"></div><div class="tr-block-2"></div>`;
+            line.innerHTML = `<span class="tr-envelope-mask" style="position:relative; display:inline-block; overflow:hidden; vertical-align: bottom;"><span class="tr-word">${innerHTML}</span>${blocksHtml}</span>`;
+          });
+        }
+        
+        const lines = textTarget.querySelectorAll('.tr-line-wrapper');
+        if (!lines || lines.length === 0) return;
+
+        const segmentDur = duration / 2;
+        const stagger = 0.15;
+
+        // Build the timeline
+        const mainTl = gsap.timeline({
+          delay: isEditor ? 0 : delay,
+          scrollTrigger: isEditor ? null : {
+            trigger: el,
+            start: triggerPos,
+            once: true
+          },
+          onComplete: () => {
+            el.removeAttribute('data-supercraft-preview-play');
+            delete el.dataset.textRevealInit;
+            if (splitInstance) {
+              splitInstance.revert();
+            }
+          }
+        });
 
       lines.forEach((line, index) => {
         const word = line.querySelector('.tr-word');
@@ -2404,6 +2491,8 @@ const activeIdleTimelines = new Map();
               
         mainTl.add(lineTl, index * stagger);
       });
+      } // End of Envelope Animation Logic
+
     });
   }
 

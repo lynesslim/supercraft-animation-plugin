@@ -55,6 +55,10 @@ function applyStartStateFromStyles(el) {
     'split-text-word-fade-y-blur',
     'split-text-word-fade-y-blur-scroll',
     'split-text-char-fade-y-blur-scroll',
+    'split-text-word-mask-up',
+    'split-text-word-mask-up-scroll',
+    'split-text-char-mask-up',
+    'split-text-char-mask-up-scroll',
     'image-reveal',
     'image-reveal-left',
     'image-reveal-right',
@@ -544,7 +548,9 @@ function applyStartStateFromStyles(el) {
         const splitPreset = settings.supercraft_split_preset || 'medium';
 
         if (mode === 'words') {
-          if (variant === 'fade-y') {
+          if (variant === 'mask-up') {
+            $el.addClass(isScrubSplit ? 'split-text-word-mask-up-scroll' : 'split-text-word-mask-up');
+          } else if (variant === 'fade-y') {
             $el.addClass(isScrubSplit ? 'split-text-word-fade-y-scroll' : 'split-text-word-fade-y');
           } else if (variant === 'fade-blur') {
             $el.addClass(isScrubSplit ? 'split-text-word-fade-y-blur-scroll' : 'split-text-word-fade-y-blur');
@@ -552,7 +558,9 @@ function applyStartStateFromStyles(el) {
             $el.addClass(isScrubSplit ? 'split-text-word-fade-scroll' : 'split-text-word-fade');
           }
         } else {
-          if (variant === 'fade-y') {
+          if (variant === 'mask-up') {
+            $el.addClass(isScrubSplit ? 'split-text-char-mask-up-scroll' : 'split-text-char-mask-up');
+          } else if (variant === 'fade-y') {
             $el.addClass(isScrubSplit ? 'split-text-char-fade-y-scroll' : 'split-text-char-fade-y');
           } else if (variant === 'fade-blur') {
             $el.addClass(isScrubSplit ? 'split-text-char-fade-y-blur-scroll' : 'split-text-char-fade-y-blur');
@@ -770,6 +778,13 @@ function applyStartStateFromStyles(el) {
         
         if (settings.supercraft_text_reveal_trigger) {
           styles.push(`--tr-trigger:${settings.supercraft_text_reveal_trigger}`);
+        }
+        
+        if (settings.supercraft_text_reveal_decoder_duration !== '' && settings.supercraft_text_reveal_decoder_duration !== null) {
+          $el.attr('data-tr-decoder-duration', settings.supercraft_text_reveal_decoder_duration);
+        }
+        if (settings.supercraft_text_reveal_loop === 'yes') {
+          $el.attr('data-tr-loop', 'true');
         }
         break;
 

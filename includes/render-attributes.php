@@ -235,15 +235,21 @@ function supercraft_apply_attrs($element) {
                     : ($preset === 'light' ? 0.04 : ($preset === 'dramatic' ? 0.08 : 0.05));
                 $durationDefault = $preset === 'light' ? 1.0 : ($preset === 'dramatic' ? 1.8 : 1.5);
                 $isBlurVariant = ($variant === 'fade-blur');
-                $isOffsetY = ($variant === 'fade-y' || $variant === 'fade-blur');
+                $isOffsetY = ($variant === 'fade-y' || $variant === 'fade-blur' || $variant === 'mask-up');
+                $isMaskUp = ($variant === 'mask-up');
+                
+                if ($isMaskUp) {
+                    $offsetDefault = 115; // Specific offset for mask-up to push out of bounds
+                }
+                
                 $blurDefault = $isBlurVariant
                     ? ($preset === 'light' ? 10 : ($preset === 'dramatic' ? 20 : 15))
                     : null;
-                $styles[] = ($isWord ? '--word-offset-x' : '--char-offset-x') . ':' . $offsetDefault . 'px';
+                $styles[] = ($isWord ? '--word-offset-x' : '--char-offset-x') . ':' . ($isMaskUp ? 0 : $offsetDefault) . 'px';
                 $styles[] = ($isWord ? '--word-offset-y' : '--char-offset-y') . ':' . ($isOffsetY ? $offsetDefault : 0) . 'px';
                 $styles[] = ($isWord ? '--word-stagger' : '--char-stagger') . ':' . $staggerDefault . 's';
                 $styles[] = ($isWord ? '--word-duration' : '--char-duration') . ':' . $durationDefault . 's';
-                $styles[] = ($isWord ? '--word-opacity-start' : '--char-opacity-start') . ':0';
+                $styles[] = ($isWord ? '--word-opacity-start' : '--char-opacity-start') . ':' . ($isMaskUp ? '1' : '0');
                 if ($blurDefault !== null) {
                     $styles[] = ($isWord ? '--word-blur-start' : '--char-blur-start') . ':' . $blurDefault . 'px';
                 }
@@ -260,7 +266,9 @@ function supercraft_apply_attrs($element) {
                 }
             }
             if ($mode === 'words') {
-                if ($variant === 'fade-y') {
+                if ($variant === 'mask-up') {
+                    $classes[] = $isScrubSplit ? 'split-text-word-mask-up-scroll' : 'split-text-word-mask-up';
+                } elseif ($variant === 'fade-y') {
                     $classes[] = $isScrubSplit ? 'split-text-word-fade-y-scroll' : 'split-text-word-fade-y';
                 } elseif ($variant === 'fade-blur') {
                     $classes[] = $isScrubSplit ? 'split-text-word-fade-y-blur-scroll' : 'split-text-word-fade-y-blur';
@@ -268,7 +276,9 @@ function supercraft_apply_attrs($element) {
                     $classes[] = $isScrubSplit ? 'split-text-word-fade-scroll' : 'split-text-word-fade';
                 }
             } else {
-                if ($variant === 'fade-y') {
+                if ($variant === 'mask-up') {
+                    $classes[] = $isScrubSplit ? 'split-text-char-mask-up-scroll' : 'split-text-char-mask-up';
+                } elseif ($variant === 'fade-y') {
                     $classes[] = $isScrubSplit ? 'split-text-char-fade-y-scroll' : 'split-text-char-fade-y';
                 } elseif ($variant === 'fade-blur') {
                     $classes[] = $isScrubSplit ? 'split-text-char-fade-y-blur-scroll' : 'split-text-char-fade-y-blur';
@@ -455,6 +465,12 @@ function supercraft_apply_attrs($element) {
             }
             if (!empty($settings['supercraft_text_reveal_trigger'])) {
                 $styles[] = '--tr-trigger:' . esc_attr($settings['supercraft_text_reveal_trigger']);
+            }
+            if ($settings['supercraft_text_reveal_decoder_duration'] !== '' && $settings['supercraft_text_reveal_decoder_duration'] !== null) {
+                $data_attrs['data-tr-decoder-duration'] = esc_attr($settings['supercraft_text_reveal_decoder_duration']);
+            }
+            if (!empty($settings['supercraft_text_reveal_loop'])) {
+                $data_attrs['data-tr-loop'] = 'true';
             }
             break;
     }

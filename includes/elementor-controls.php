@@ -573,6 +573,7 @@ $supercraft_controls_callback = function ($element, $section_id) {
                 'fade-x' => __('Fade X', 'supercraft-anim'),
                 'fade-y' => __('Fade Y', 'supercraft-anim'),
                 'fade-blur' => __('Fade Blur', 'supercraft-anim'),
+                'mask-up' => __('Mask Reveal Up', 'supercraft-anim'),
             ],
             'default' => 'fade-x',
             'frontend_available' => false,
@@ -592,6 +593,7 @@ $supercraft_controls_callback = function ($element, $section_id) {
                 'fade-x' => __('Fade X', 'supercraft-anim'),
                 'fade-y' => __('Fade Y', 'supercraft-anim'),
                 'fade-blur' => __('Fade Blur', 'supercraft-anim'),
+                'mask-up' => __('Mask Reveal Up', 'supercraft-anim'),
             ],
             'default' => 'fade-x',
             'frontend_available' => false,
@@ -1186,6 +1188,7 @@ $supercraft_controls_callback = function ($element, $section_id) {
             'options' => [
                 'envelope' => __('Double Envelope', 'supercraft-anim'),
                 'envelope-single' => __('Single Envelope', 'supercraft-anim'),
+                'decoder' => __('Decoder', 'supercraft-anim'),
             ],
             'frontend_available' => false,
             'condition' => [
@@ -1238,6 +1241,35 @@ $supercraft_controls_callback = function ($element, $section_id) {
             'frontend_available' => false,
             'condition' => [
                 'supercraft_anim_category' => 'text-reveal',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_text_reveal_decoder_duration',
+        [
+            'label' => __('Duration Per Letter (s)', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::NUMBER,
+            'step' => 0.1,
+            'default' => 1.5,
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'text-reveal',
+                'supercraft_text_reveal_preset' => 'decoder',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_text_reveal_loop',
+        [
+            'label' => __('Loop Animation', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::SWITCHER,
+            'return_value' => 'yes',
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'text-reveal',
+                'supercraft_text_reveal_preset' => 'decoder',
             ],
         ]
     );

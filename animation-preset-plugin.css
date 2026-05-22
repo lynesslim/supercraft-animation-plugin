@@ -681,3 +681,20 @@ body:not(.elementor-editor-active) .container-reveal-scroll {
 body.elementor-editor-active .text-reveal:not([data-supercraft-preview-play="yes"]) .tr-word {
   opacity: 1 !important;
 }
+
+/* Split Text: Mask Reveal Up */
+.split-text-char-mask-up,
+.split-text-char-mask-up-scroll,
+.split-text-word-mask-up,
+.split-text-word-mask-up-scroll {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+  position: relative;
+  z-index: 1;
+}
+
+.split-text-char-mask-up .char,
+.split-text-char-mask-up-scroll .char,
+.split-text-word-mask-up .word,
+.split-text-word-mask-up-scroll .word {
+  transform: translateY(var(--char-offset-y, 115px));
+}
