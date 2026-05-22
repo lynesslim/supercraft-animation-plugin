@@ -128,11 +128,11 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         const styles = getComputedStyle(el);
 
-        const offsetX =
+        let offsetX =
           (isWord
             ? styles.getPropertyValue('--word-offset-x')
             : styles.getPropertyValue('--char-offset-x'))?.trim() || '0px';
-        const offsetY =
+        let offsetY =
           (isWord
             ? styles.getPropertyValue('--word-offset-y')
             : styles.getPropertyValue('--char-offset-y'))?.trim() || '0px';
@@ -156,10 +156,24 @@ document.addEventListener('DOMContentLoaded', function () {
         const opacityStartRaw = isWord
           ? styles.getPropertyValue('--word-opacity-start')
           : styles.getPropertyValue('--char-opacity-start');
-        const opacityStart =
+        let opacityStart =
           opacityStartRaw && !Number.isNaN(parseFloat(opacityStartRaw))
             ? parseFloat(opacityStartRaw)
             : 0;
+
+        const isMaskUpAnim =
+          el.classList.contains('split-text-word-mask-up') ||
+          el.classList.contains('split-text-word-mask-up-scroll') ||
+          el.classList.contains('split-text-char-mask-up') ||
+          el.classList.contains('split-text-char-mask-up-scroll');
+
+        if (isMaskUpAnim) {
+          offsetX = 0;
+          if (offsetY === '0px' || offsetY === '0' || !offsetY) {
+            offsetY = '115px';
+          }
+          opacityStart = 1;
+        }
 
         const ease =
           (isWord

@@ -578,17 +578,27 @@ function applyStartStateFromStyles(el) {
             : (splitPreset === 'light' ? 0.04 : (splitPreset === 'dramatic' ? 0.08 : 0.05));
           const durationDefault = splitPreset === 'light' ? 1.0 : (splitPreset === 'dramatic' ? 1.8 : 1.5);
           const isBlurVariant = (variant === 'fade-blur');
-          const isOffsetY = (variant === 'fade-y' || variant === 'fade-blur');
+          const isOffsetY = (variant === 'fade-y' || variant === 'fade-blur' || variant === 'mask-up');
+          const isMaskUp = (variant === 'mask-up');
+          
+          let applyOffsetX = offsetDefault;
+          let applyOffsetY = isOffsetY ? offsetDefault : 0;
+          
+          if (isMaskUp) {
+            applyOffsetX = 0;
+            applyOffsetY = 115;
+          }
+
           const blurDefault = isBlurVariant
             ? (splitPreset === 'light' ? 10 : (splitPreset === 'dramatic' ? 20 : 15))
             : null;
           
           const prefix = isWord ? '--word-' : '--char-';
-          styles.push(`${prefix}offset-x:${offsetDefault}px`);
-          styles.push(`${prefix}offset-y:${isOffsetY ? offsetDefault : 0}px`);
+          styles.push(`${prefix}offset-x:${applyOffsetX}px`);
+          styles.push(`${prefix}offset-y:${applyOffsetY}px`);
           styles.push(`${prefix}stagger:${staggerDefault}s`);
           styles.push(`${prefix}duration:${durationDefault}s`);
-          styles.push(`${prefix}opacity-start:0`);
+          styles.push(`${prefix}opacity-start:${isMaskUp ? 1 : 0}`);
           if (blurDefault !== null) {
             styles.push(`${prefix}blur-start:${blurDefault}px`);
           }
