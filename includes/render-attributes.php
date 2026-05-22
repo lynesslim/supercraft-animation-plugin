@@ -419,6 +419,38 @@ function supercraft_apply_attrs($element) {
                 $data_attrs['data-scroll-fill-forward-only'] = 'true';
             }
             break;
+
+        case 'text-reveal':
+            $classes[] = 'text-reveal';
+            $preset = $settings['supercraft_text_reveal_preset'] ?? 'envelope';
+            $classes[] = 'text-reveal-' . $preset;
+
+            $color1 = supercraft_normalize_color($settings['supercraft_text_reveal_color1'] ?? '');
+            if (empty($color1) && !empty($settings['__globals__']['supercraft_text_reveal_color1'])) {
+                $color1 = supercraft_global_css_var($settings['__globals__']['supercraft_text_reveal_color1']);
+            }
+            if (!empty($color1)) {
+                $styles[] = '--tr-color1:' . esc_attr($color1);
+            }
+
+            $color2 = supercraft_normalize_color($settings['supercraft_text_reveal_color2'] ?? '');
+            if (empty($color2) && !empty($settings['__globals__']['supercraft_text_reveal_color2'])) {
+                $color2 = supercraft_global_css_var($settings['__globals__']['supercraft_text_reveal_color2']);
+            }
+            if (!empty($color2)) {
+                $styles[] = '--tr-color2:' . esc_attr($color2);
+            }
+
+            if ($settings['supercraft_text_reveal_duration'] !== '' && $settings['supercraft_text_reveal_duration'] !== null) {
+                $styles[] = '--tr-duration:' . esc_attr($settings['supercraft_text_reveal_duration']) . 's';
+            }
+            if ($settings['supercraft_text_reveal_delay'] !== '' && $settings['supercraft_text_reveal_delay'] !== null) {
+                $styles[] = '--animation-delay:' . esc_attr($settings['supercraft_text_reveal_delay']) . 's';
+            }
+            if (!empty($settings['supercraft_text_reveal_trigger'])) {
+                $styles[] = '--tr-trigger:' . esc_attr($settings['supercraft_text_reveal_trigger']);
+            }
+            break;
     }
     }
 

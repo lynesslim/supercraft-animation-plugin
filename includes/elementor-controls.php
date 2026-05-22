@@ -106,6 +106,7 @@ $supercraft_controls_callback = function ($element, $section_id) {
         'image-reveal' => __('Image Reveal', 'supercraft-anim'),
         'container-reveal' => __('Container Reveal', 'supercraft-anim'),
         'scroll-fill-text' => __('Scroll Fill Text', 'supercraft-anim'),
+        'text-reveal'      => __('Text Reveal', 'supercraft-anim'),
         'video-gsap' => __('Video GSAP', 'supercraft-anim'),
     ];
 
@@ -1138,6 +1139,99 @@ $supercraft_controls_callback = function ($element, $section_id) {
             'frontend_available' => false,
             'condition' => [
                 'supercraft_anim_category' => 'scroll-fill-text',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_text_reveal_preset',
+        [
+            'label' => __('Preset', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::SELECT,
+            'default' => 'envelope',
+            'options' => [
+                'envelope' => __('Envelope Swipe', 'supercraft-anim'),
+            ],
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'text-reveal',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_text_reveal_color1',
+        [
+            'label' => __('Primary Swipe Color', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::COLOR,
+            'global' => [
+                'default' => \Elementor\Core\Kits\Documents\Tabs\Global_Colors::COLOR_PRIMARY,
+            ],
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'text-reveal',
+                'supercraft_text_reveal_preset' => 'envelope',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_text_reveal_color2',
+        [
+            'label' => __('Secondary Swipe Color', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::COLOR,
+            'global' => [
+                'default' => \Elementor\Core\Kits\Documents\Tabs\Global_Colors::COLOR_SECONDARY,
+            ],
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'text-reveal',
+                'supercraft_text_reveal_preset' => 'envelope',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_text_reveal_duration',
+        [
+            'label' => __('Duration (s)', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::NUMBER,
+            'min' => 0.1,
+            'max' => 10,
+            'step' => 0.1,
+            'default' => 1,
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'text-reveal',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_text_reveal_delay',
+        [
+            'label' => __('Delay (s)', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::NUMBER,
+            'min' => 0,
+            'max' => 10,
+            'step' => 0.1,
+            'default' => 0,
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'text-reveal',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_text_reveal_trigger',
+        [
+            'label' => __('Scroll Trigger', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::TEXT,
+            'default' => 'top 85%',
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'text-reveal',
             ],
         ]
     );

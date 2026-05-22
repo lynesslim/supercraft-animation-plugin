@@ -614,3 +614,48 @@ body:not(.elementor-editor-active) .container-reveal-scroll {
 .container-reveal-bottom { --reveal-direction: bottom; }
 .container-reveal-center { --reveal-direction: center; }
 .container-reveal-cinematic-gate { --reveal-direction: cinematic-gate; }
+
+/* ===================================
+   Text Reveal
+=================================== */
+
+.text-reveal {
+  position: relative;
+  overflow: hidden;
+  display: inline-block; /* Important for bounding box wrapping the text exactly */
+}
+
+/* Base styles for the injected swipe blocks */
+.tr-block-1,
+.tr-block-2 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  transform-origin: left;
+  transform: scaleX(0);
+  pointer-events: none; /* Let clicks pass through to text */
+  z-index: 2; /* Sit on top of text */
+}
+
+.tr-block-1 {
+  background-color: var(--tr-color1, transparent);
+}
+
+.tr-block-2 {
+  background-color: var(--tr-color2, transparent);
+}
+
+/* The word inside the envelope */
+.tr-word {
+  display: inline-block;
+  opacity: 0;
+  position: relative;
+  z-index: 1; /* Below the swipe blocks */
+}
+
+/* In editor preview, show the text initially unless previewing */
+body.elementor-editor-active .text-reveal:not([data-supercraft-preview-play="yes"]) .tr-word {
+  opacity: 1 !important;
+}

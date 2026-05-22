@@ -85,7 +85,9 @@ function applyStartStateFromStyles(el) {
     'blur-zoom-in',
     'blur-zoom-out',
     'fade',
-    'supercraft-section-transition'
+    'supercraft-section-transition',
+    'text-reveal',
+    'text-reveal-envelope'
   ];
 
   function hasSupercraftDecorations($el) {
@@ -717,6 +719,50 @@ function applyStartStateFromStyles(el) {
           $el.attr('data-scroll-fill-line', 'yes');
         }
         break;
+      case 'text-reveal':
+        $el.addClass('text-reveal');
+        
+        const presetTr = settings.supercraft_text_reveal_preset || 'envelope';
+        $el.addClass('text-reveal-' + presetTr);
+
+        // Mirrors normalizeColor from scroll-fill-text — checks val is truthy before returning it
+        const getGlobalColor = (val, globalKey) => {
+          if (!val && !globalKey) return '';
+          if (val && typeof val === 'string') return val;       // only if non-empty string
+          if (typeof val === 'object') {
+            if (val.color) return val.color;
+            if (val.value) return val.value;
+          }
+          if (globalKey) {
+            const cleaned = globalKey
+              .toString()
+              .replace(/^.*[=:]/, '')
+              .replace(/[^a-zA-Z0-9_-]/g, '');
+            if (cleaned) return `var(--e-global-color-${cleaned})`;
+          }
+          return '';
+        };
+
+        const gKey1 = settings.__globals__ ? settings.__globals__.supercraft_text_reveal_color1 : '';
+        const color1 = getGlobalColor(settings.supercraft_text_reveal_color1, gKey1);
+        if (color1) styles.push(`--tr-color1:${color1}`);
+
+        const gKey2 = settings.__globals__ ? settings.__globals__.supercraft_text_reveal_color2 : '';
+        const color2 = getGlobalColor(settings.supercraft_text_reveal_color2, gKey2);
+        if (color2) styles.push(`--tr-color2:${color2}`);
+
+        if (settings.supercraft_text_reveal_duration !== '' && settings.supercraft_text_reveal_duration !== null) {
+          styles.push(`--tr-duration:${settings.supercraft_text_reveal_duration}`);
+        }
+        
+        if (settings.supercraft_text_reveal_delay !== '' && settings.supercraft_text_reveal_delay !== null) {
+          styles.push(`--animation-delay:${settings.supercraft_text_reveal_delay}`);
+        }
+        
+        if (settings.supercraft_text_reveal_trigger) {
+          styles.push(`--tr-trigger:${settings.supercraft_text_reveal_trigger}`);
+        }
+        break;
 
     }
 
@@ -959,7 +1005,7 @@ function applyStartStateFromStyles(el) {
     if (window.ScrollTrigger) {
       ScrollTrigger.getAll().forEach((st) => st.kill());
     }
-    document.querySelectorAll('[data-advanced-init], [data-scroll-transform-init], [data-scroll-transform-scrub-init], [data-image-reveal-init], [data-container-reveal-init], [data-video-gsap-init], [data-scroll-fill-init], [data-anim-init], [data-st-init]').forEach((el) => {
+    document.querySelectorAll('[data-advanced-init], [data-scroll-transform-init], [data-scroll-transform-scrub-init], [data-image-reveal-init], [data-container-reveal-init], [data-video-gsap-init], [data-scroll-fill-init], [data-anim-init], [data-st-init], [data-text-reveal-init]').forEach((el) => {
       delete el.dataset.scrollTransformInit;
       delete el.dataset.scrollTransformScrubInit;
       delete el.dataset.imageRevealInit;
@@ -969,6 +1015,12 @@ function applyStartStateFromStyles(el) {
       delete el.dataset.animInit;
       delete el.dataset.advancedInit;
       delete el.dataset.stInit;
+      delete el.dataset.textRevealInit;
+    });
+    // Mark text-reveal elements so the CSS opacity:1 !important override is lifted,
+    // allowing GSAP to animate .tr-word from opacity:0
+    document.querySelectorAll('.text-reveal').forEach((el) => {
+      el.setAttribute('data-supercraft-preview-play', 'yes');
     });
     if (window.initAllAnimations) {
       window.initAllAnimations();

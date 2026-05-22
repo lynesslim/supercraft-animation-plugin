@@ -806,6 +806,12 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
                   scrub: 0.4,
                 },
               });
+
+              // FIX: Insert a <br> after the line to preserve vertical stacking for inline elements
+              if (index < totalLines - 1) {
+                const br = document.createElement('br');
+                lineEl.parentNode.insertBefore(br, lineEl.nextSibling);
+              }
             });
           }
         }
@@ -2261,6 +2267,111 @@ const activeIdleTimelines = new Map();
   }
 
   /* ==========================================
+     TEXT REVEAL (ENVELOPE, ETC.)
+     ========================================== */
+  function initTextReveal() {
+    if (typeof window.SplitType !== 'function') {
+      console.warn('SplitType not loaded for text-reveal');
+      return;
+    }
+    const reveals = document.querySelectorAll('.text-reveal:not([data-text-reveal-init])');
+    reveals.forEach((el) => {
+      el.dataset.textRevealInit = 'true';
+      
+      const textTarget = el.querySelector('.elementor-heading-title, h1, h2, h3, h4, h5, h6, p, span, .elementor-text-editor') || el;
+      
+      // Read colors from computed styles; resolve CSS var() values to actual colors
+      const computedStyles = getComputedStyle(el);
+      let color1 = computedStyles.getPropertyValue('--tr-color1')?.trim() || '';
+      let color2 = computedStyles.getPropertyValue('--tr-color2')?.trim() || '';
+      
+      // Fallback: if the CSS vars didn't resolve (empty or 'transparent'), try reading Elementor globals
+      if (!color1 || color1 === 'transparent') {
+        const rootStyles = getComputedStyle(document.documentElement);
+        color1 = rootStyles.getPropertyValue('--e-global-color-primary')?.trim() || '#6EC1E4';
+      }
+      if (!color2 || color2 === 'transparent') {
+        const rootStyles = getComputedStyle(document.documentElement);
+        color2 = rootStyles.getPropertyValue('--e-global-color-secondary')?.trim() || '#54595F';
+      }
+      
+      const durationRaw = computedStyles.getPropertyValue('--tr-duration');
+      const duration = durationRaw && !Number.isNaN(parseFloat(durationRaw)) ? parseFloat(durationRaw) : 1;
+      
+      const delayRaw = computedStyles.getPropertyValue('--animation-delay');
+      const delay = delayRaw && !Number.isNaN(parseFloat(delayRaw)) ? parseFloat(delayRaw) : 0;
+      
+      const triggerPos = computedStyles.getPropertyValue('--tr-trigger')?.trim() || 'top 85%';
+      
+      // Split text into lines
+      let splitInstance = null;
+      if (!textTarget.querySelector('.tr-line-wrapper')) {
+        splitInstance = new SplitType(textTarget, { types: 'lines', lineClass: 'tr-line-wrapper' });
+        
+        const splitLines = splitInstance.lines;
+        if (!splitLines || splitLines.length === 0) return;
+        
+        splitLines.forEach(line => {
+          line.style.position = 'relative';
+          line.style.overflow = 'visible';
+          
+          const innerHTML = line.innerHTML;
+          line.innerHTML = `<span class="tr-envelope-mask" style="position:relative; display:inline-block; overflow:hidden;"><span class="tr-word">${innerHTML}</span><div class="tr-block-1"></div><div class="tr-block-2"></div></span>`;
+        });
+      }
+      
+      const lines = textTarget.querySelectorAll('.tr-line-wrapper');
+      if (!lines || lines.length === 0) return;
+
+      const segmentDur = duration / 2;
+      const stagger = 0.15;
+
+      // Build the timeline
+      const mainTl = gsap.timeline({
+        delay: isEditor ? 0 : delay,
+        scrollTrigger: isEditor ? null : {
+          trigger: el,
+          start: triggerPos,
+          once: true
+        },
+        onComplete: () => {
+          el.removeAttribute('data-supercraft-preview-play');
+          delete el.dataset.textRevealInit;
+          if (splitInstance) {
+            splitInstance.revert();
+          }
+        }
+      });
+
+      lines.forEach((line, index) => {
+        const word = line.querySelector('.tr-word');
+        const block1 = line.querySelector('.tr-block-1');
+        const block2 = line.querySelector('.tr-block-2');
+        
+        if (!word || !block1 || !block2) return;
+        
+        // Apply colors directly as inline styles — bypasses CSS var issues
+        block1.style.backgroundColor = color1;
+        block2.style.backgroundColor = color2;
+        
+        // Reset state
+        gsap.set(word, { opacity: 0 });
+        gsap.set(block1, { scaleX: 0, transformOrigin: 'left' });
+        gsap.set(block2, { scaleX: 0, transformOrigin: 'left' });
+        
+        const lineTl = gsap.timeline();
+        lineTl.to(block1, { scaleX: 1, duration: segmentDur, ease: "power2.inOut", transformOrigin: 'left' })
+              .to(block2, { scaleX: 1, duration: segmentDur, ease: "power2.inOut", transformOrigin: 'left' }, `-=${segmentDur * 0.5}`)
+              .to(word, { opacity: 1, duration: 0.01 })
+              .to(block1, { scaleX: 0, duration: segmentDur, ease: "power2.inOut", transformOrigin: "right" })
+              .to(block2, { scaleX: 0, duration: segmentDur, ease: "power2.inOut", transformOrigin: "right" }, `-=${segmentDur * 0.5}`);
+              
+        mainTl.add(lineTl, index * stagger);
+      });
+    });
+  }
+
+  /* ==========================================
      MASTER INIT
      ========================================== */
   function initAllAnimations() {
@@ -2273,6 +2384,7 @@ const activeIdleTimelines = new Map();
     initVideoGSAP();
     initSectionTransitions();
     initAdvancedAnimations();
+    initTextReveal();
   }
 
   initAllAnimations();
@@ -2285,6 +2397,7 @@ const activeIdleTimelines = new Map();
   window.initImageReveal = initImageReveal;
   window.initContainerReveal = initContainerReveal;
   window.initAdvancedAnimations = initAdvancedAnimations;
+  window.initTextReveal = initTextReveal;
 
   // Listen for re-init requests posted from the Elementor editor (main window → iframe)
   window.addEventListener('message', function (e) {
@@ -2293,7 +2406,7 @@ const activeIdleTimelines = new Map();
       ScrollTrigger.getAll().forEach(function (st) { st.kill(); });
     }
     document.querySelectorAll(
-      '[data-scroll-transform-init],[data-scroll-transform-scrub-init],[data-image-reveal-init],[data-container-reveal-init],[data-video-gsap-init],[data-scroll-fill-init],[data-anim-init],[data-advanced-init],[data-st-init]'
+      '[data-scroll-transform-init],[data-scroll-transform-scrub-init],[data-image-reveal-init],[data-container-reveal-init],[data-video-gsap-init],[data-scroll-fill-init],[data-anim-init],[data-advanced-init],[data-st-init],[data-text-reveal-init]'
     ).forEach(function (el) {
       delete el.dataset.scrollTransformInit;
       delete el.dataset.scrollTransformScrubInit;
@@ -2304,6 +2417,7 @@ const activeIdleTimelines = new Map();
       delete el.dataset.animInit;
       delete el.dataset.advancedInit;
       delete el.dataset.stInit;
+      delete el.dataset.textRevealInit;
     });
     initAllAnimations();
     setTimeout(function () {
