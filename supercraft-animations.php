@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Superanimate GSAP Elementor
  * Description: GSAP-based animation presets with Elementor controls.
- * Version: 0.2.2
+ * Version: 0.2.4
  * Author: Supercraft
  */
 

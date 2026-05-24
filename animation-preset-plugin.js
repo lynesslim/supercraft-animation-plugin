@@ -2541,9 +2541,17 @@ const activeIdleTimelines = new Map();
   // Listen for re-init requests posted from the Elementor editor (main window → iframe)
   window.addEventListener('message', function (e) {
     if (!e || !e.data || e.data.type !== 'supercraft_reinit_all') return;
+    window.supercraftRestartAnimations();
+  });
+
+  // Expose a global restart function that can be called manually
+  window.supercraftRestartAnimations = function() {
     if (window.ScrollTrigger) {
       ScrollTrigger.getAll().forEach(function (st) { st.kill(); });
     }
+    // Note: If you want to kill all active GSAP animations as well to prevent overlaps, uncomment the next line:
+    // gsap.killTweensOf('*');
+    
     document.querySelectorAll(
       '[data-scroll-transform-init],[data-scroll-transform-scrub-init],[data-image-reveal-init],[data-container-reveal-init],[data-video-gsap-init],[data-scroll-fill-init],[data-anim-init],[data-advanced-init],[data-st-init],[data-text-reveal-init]'
     ).forEach(function (el) {
@@ -2557,10 +2565,17 @@ const activeIdleTimelines = new Map();
       delete el.dataset.advancedInit;
       delete el.dataset.stInit;
       delete el.dataset.textRevealInit;
+      
+      // Clear SplitType instances if any (so they can be safely re-split)
+      if (el.isSplit) {
+         // Usually SplitType attaches to the element, but we just let it re-init.
+      }
     });
+    
     initAllAnimations();
+    
     setTimeout(function () {
       if (window.ScrollTrigger) { ScrollTrigger.refresh(); }
     }, 150);
-  });
+  };
 });
