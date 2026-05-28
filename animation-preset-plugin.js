@@ -1884,7 +1884,10 @@ const activeIdleTimelines = new Map();
         const isScrollTrigger = row.trigger === 'scroll_into_view';
         const isHover = row.trigger === 'hover';
         const isStaticState = row.trigger === 'static_state';
-        const animKeyId = `${host.dataset.supercraftAdvanced}_${idx}`;
+        if (!host.dataset.advancedAnimId) {
+          host.dataset.advancedAnimId = Math.random().toString(36).substr(2, 9);
+        }
+        const animKeyId = `${host.dataset.advancedAnimId}_${idx}`;
 
         if (isScrollTrigger && animationType !== 'simple') {
           handleScrollIntoViewAdvanced(row, triggerEls, targetEls, animationType, {
