@@ -2072,9 +2072,9 @@ const activeIdleTimelines = new Map();
               ...transforms.to,
               duration: transforms.duration / speed,
               ease: transforms.ease
-            });
+            }, delay);
 
-            triggerItem.addEventListener('click', () => tl.restart());
+            triggerItem.addEventListener('click', () => tl.restart(true));
           });
         };
 
@@ -2150,7 +2150,7 @@ const activeIdleTimelines = new Map();
 
     const bindManualTrigger = (anim, triggerEl) => {
       if (!isManual) return;
-      triggerEl.addEventListener('click', () => anim.restart());
+      triggerEl.addEventListener('click', () => anim.restart(true));
     };
 
     switch (animationType) {
@@ -2317,7 +2317,8 @@ const activeIdleTimelines = new Map();
             opacity: 0,
             duration,
             stagger: 0.05,
-            ease
+            ease,
+            delay
           }));
           bindManualTrigger(anim, trigger);
         });
