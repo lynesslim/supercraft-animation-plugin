@@ -649,6 +649,12 @@ function supercraft_sanitize_advanced_row($row) {
     if (!empty($row['split_mode'])) {
         $sanitized['splitMode'] = sanitize_text_field($row['split_mode']);
     }
+    if (!empty($row['split_variant_char'])) {
+        $sanitized['splitVariantChar'] = sanitize_text_field($row['split_variant_char']);
+    }
+    if (!empty($row['split_variant_word'])) {
+        $sanitized['splitVariantWord'] = sanitize_text_field($row['split_variant_word']);
+    }
     $is_custom = (!empty($sanitized['effect']) && $sanitized['effect'] === 'custom-transform') || (!empty($row['scroll_preset']) && $row['scroll_preset'] === 'custom');
     if ($is_custom) {
         if (isset($row['custom_x']) && $row['custom_x'] !== '' && $row['custom_x'] !== null) {

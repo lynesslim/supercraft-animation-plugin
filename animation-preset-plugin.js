@@ -2292,7 +2292,7 @@ const activeIdleTimelines = new Map();
         }
         const splitMode = opts.splitMode || 'chars';
         const isWord = splitMode === 'words';
-        const offset = 30;
+        const splitVariant = isWord ? (opts.splitVariantWord || 'fade-x') : (opts.splitVariantChar || 'fade-x');
 
         targetEls.forEach((target, idx) => {
           const trigger = triggerEls[idx] || triggerEls[0] || target;
@@ -2310,16 +2310,37 @@ const activeIdleTimelines = new Map();
 
           items.forEach((el) => {
             el.style.display = isWord ? 'inline-block' : 'inline-block';
+            if (splitVariant === 'mask-up') {
+              el.style.transform = 'translateY(115px)';
+            }
           });
 
-          const anim = gsap.from(items, createTriggerArgs(trigger, {
-            y: offset,
-            opacity: 0,
-            duration,
-            stagger: 0.05,
-            ease,
-            delay
-          }));
+          if (splitVariant === 'mask-up') {
+            textTarget.style.clipPath = 'polygon(0 0, 100% 0, 100% 100%, 0% 100%)';
+            textTarget.style.webkitClipPath = 'polygon(0 0, 100% 0, 100% 100%, 0% 100%)';
+          }
+
+          let fromVars = { opacity: 0 };
+          let toVars = { opacity: 1, duration, stagger: 0.05, ease, delay };
+
+          if (splitVariant === 'fade-x') {
+            fromVars.x = 30;
+            toVars.x = 0;
+          } else if (splitVariant === 'fade-y') {
+            fromVars.y = 30;
+            toVars.y = 0;
+          } else if (splitVariant === 'fade-blur') {
+            fromVars.y = 30;
+            toVars.y = 0;
+            fromVars.filter = 'blur(20px)';
+            toVars.filter = 'blur(0px)';
+          } else if (splitVariant === 'mask-up') {
+            fromVars.opacity = 1;
+            fromVars.y = 115;
+            toVars.y = 0;
+          }
+
+          const anim = gsap.fromTo(items, fromVars, createTriggerArgs(trigger, toVars));
           bindManualTrigger(anim, trigger);
         });
         break;

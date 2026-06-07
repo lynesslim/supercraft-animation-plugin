@@ -1397,7 +1397,7 @@ $supercraft_controls_callback = function ($element, $section_id) {
                     'type' => \Elementor\Controls_Manager::TEXT,
                     'default' => 'top 85%',
                     'condition' => [
-                        'trigger' => ['scroll_into_view', 'click'],
+                        'trigger' => 'scroll_into_view',
                     ],
                 ],
                 [
@@ -1540,6 +1540,40 @@ $supercraft_controls_callback = function ($element, $section_id) {
                     'condition' => [
                         'trigger' => ['scroll_into_view', 'click'],
                         'animation_type' => 'split-text',
+                    ],
+                ],
+                [
+                    'name' => 'split_variant_char',
+                    'label' => __('Variant (Characters)', 'supercraft-anim'),
+                    'type' => \Elementor\Controls_Manager::SELECT,
+                    'options' => [
+                        'fade-x' => __('Fade X', 'supercraft-anim'),
+                        'fade-y' => __('Fade Y', 'supercraft-anim'),
+                        'fade-blur' => __('Fade Blur', 'supercraft-anim'),
+                        'mask-up' => __('Mask Reveal Up', 'supercraft-anim'),
+                    ],
+                    'default' => 'fade-x',
+                    'condition' => [
+                        'trigger' => ['scroll_into_view', 'click'],
+                        'animation_type' => 'split-text',
+                        'split_mode' => 'chars',
+                    ],
+                ],
+                [
+                    'name' => 'split_variant_word',
+                    'label' => __('Variant (Words)', 'supercraft-anim'),
+                    'type' => \Elementor\Controls_Manager::SELECT,
+                    'options' => [
+                        'fade-x' => __('Fade X', 'supercraft-anim'),
+                        'fade-y' => __('Fade Y', 'supercraft-anim'),
+                        'fade-blur' => __('Fade Blur', 'supercraft-anim'),
+                        'mask-up' => __('Mask Reveal Up', 'supercraft-anim'),
+                    ],
+                    'default' => 'fade-x',
+                    'condition' => [
+                        'trigger' => ['scroll_into_view', 'click'],
+                        'animation_type' => 'split-text',
+                        'split_mode' => 'words',
                     ],
                 ],
                 [
