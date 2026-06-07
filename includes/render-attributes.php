@@ -579,9 +579,9 @@ function supercraft_sanitize_advanced_row($row) {
         $sanitized['trigger'] = sanitize_text_field($row['trigger']);
     }
     $trigger = $sanitized['trigger'] ?? '';
-    if ($trigger === 'scroll_into_view' && !empty($row['animation_type'])) {
+    if (in_array($trigger, ['scroll_into_view', 'click']) && !empty($row['animation_type'])) {
         $sanitized['animationType'] = sanitize_text_field($row['animation_type']);
-    } elseif ($trigger === 'scroll_into_view') {
+    } elseif (in_array($trigger, ['scroll_into_view', 'click'])) {
         $sanitized['animationType'] = 'scroll-transform';
     }
     if (!empty($row['trigger_element_mode'])) {
