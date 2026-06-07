@@ -1902,6 +1902,8 @@ const activeIdleTimelines = new Map();
             imageDirection: row.imageDirection,
             containerDirection: row.containerDirection,
             splitMode: row.splitMode,
+            splitVariantChar: row.splitVariantChar,
+            splitVariantWord: row.splitVariantWord,
             scrollTriggerPoint,
             x: row.x,
             y: row.y,
