@@ -1311,6 +1311,7 @@ $supercraft_controls_callback = function ($element, $section_id) {
 
     $trigger_options = [
         'scroll_into_view' => __('Scroll Into View', 'supercraft-anim'),
+        'click' => __('Click', 'supercraft-anim'),
         'idle_loop' => __('Idle Loop', 'supercraft-anim'),
         'hover' => __('Hover', 'supercraft-anim'),
         'static_state' => __('Initial State (Static)', 'supercraft-anim'),
@@ -1365,7 +1366,7 @@ $supercraft_controls_callback = function ($element, $section_id) {
                     'text' => __('Play Animation', 'supercraft-anim'),
                     'event' => 'supercraft_preview_play',
                     'condition' => [
-                        'trigger' => 'scroll_into_view',
+                        'trigger' => ['scroll_into_view', 'click'],
                     ],
                 ],
                 [
@@ -1380,14 +1381,14 @@ $supercraft_controls_callback = function ($element, $section_id) {
                     'label' => __('Animation Type', 'supercraft-anim'),
                     'type' => \Elementor\Controls_Manager::SELECT,
                     'options' => [
-                        'scroll-transform' => __('Scroll Transform', 'supercraft-anim'),
+                        'scroll-transform' => __('Transform', 'supercraft-anim'),
                         'image-reveal' => __('Image Reveal', 'supercraft-anim'),
                         'container-reveal' => __('Container Reveal', 'supercraft-anim'),
                         'split-text' => __('Split Text', 'supercraft-anim'),
                     ],
                     'default' => 'scroll-transform',
                     'condition' => [
-                        'trigger' => 'scroll_into_view',
+                        'trigger' => ['scroll_into_view', 'click'],
                     ],
                 ],
                 [
@@ -1396,7 +1397,7 @@ $supercraft_controls_callback = function ($element, $section_id) {
                     'type' => \Elementor\Controls_Manager::TEXT,
                     'default' => 'top 85%',
                     'condition' => [
-                        'trigger' => 'scroll_into_view',
+                        'trigger' => ['scroll_into_view', 'click'],
                     ],
                 ],
                 [
@@ -1490,7 +1491,7 @@ $supercraft_controls_callback = function ($element, $section_id) {
                     'options' => $scroll_presets,
                     'default' => 'fade-up',
                     'condition' => [
-                        'trigger' => 'scroll_into_view',
+                        'trigger' => ['scroll_into_view', 'click'],
                         'animation_type' => 'scroll-transform',
                     ],
                 ],
@@ -1506,7 +1507,7 @@ $supercraft_controls_callback = function ($element, $section_id) {
                     ],
                     'default' => 'left',
                     'condition' => [
-                        'trigger' => 'scroll_into_view',
+                        'trigger' => ['scroll_into_view', 'click'],
                         'animation_type' => 'image-reveal',
                     ],
                 ],
@@ -1523,7 +1524,7 @@ $supercraft_controls_callback = function ($element, $section_id) {
                     ],
                     'default' => 'center',
                     'condition' => [
-                        'trigger' => 'scroll_into_view',
+                        'trigger' => ['scroll_into_view', 'click'],
                         'animation_type' => 'container-reveal',
                     ],
                 ],
@@ -1537,7 +1538,7 @@ $supercraft_controls_callback = function ($element, $section_id) {
                     ],
                     'default' => 'chars',
                     'condition' => [
-                        'trigger' => 'scroll_into_view',
+                        'trigger' => ['scroll_into_view', 'click'],
                         'animation_type' => 'split-text',
                     ],
                 ],

@@ -1884,13 +1884,15 @@ const activeIdleTimelines = new Map();
         const isScrollTrigger = row.trigger === 'scroll_into_view';
         const isHover = row.trigger === 'hover';
         const isStaticState = row.trigger === 'static_state';
+        const isClick = row.trigger === 'click';
         if (!host.dataset.advancedAnimId) {
           host.dataset.advancedAnimId = Math.random().toString(36).substr(2, 9);
         }
         const animKeyId = `${host.dataset.advancedAnimId}_${idx}`;
 
-        if (isScrollTrigger && animationType !== 'simple') {
+        if ((isScrollTrigger || isClick) && animationType !== 'simple') {
           handleScrollIntoViewAdvanced(row, triggerEls, targetEls, animationType, {
+            triggerMode: row.trigger,
             duration,
             delay,
             ease,
@@ -2056,6 +2058,26 @@ const activeIdleTimelines = new Map();
           });
         };
 
+        const applyClick = () => {
+          const transforms = getPresetTransforms(effect, { duration, delay, ease, intensity });
+          triggerEls.forEach((triggerItem, idx) => {
+            const targetItem = targetEls[idx] || targetEls[0];
+            if (!targetItem) return;
+
+            gsap.killTweensOf(targetItem);
+            gsap.set(targetItem, transforms.from);
+            
+            const tl = gsap.timeline({ paused: true });
+            tl.to(targetItem, {
+              ...transforms.to,
+              duration: transforms.duration / speed,
+              ease: transforms.ease
+            });
+
+            triggerItem.addEventListener('click', () => tl.restart());
+          });
+        };
+
         if (isStaticState) {
           applyStaticState();
         } else if (isIdleLoop) {
@@ -2095,6 +2117,8 @@ const activeIdleTimelines = new Map();
           applyScrollTrigger();
         } else if (isHover) {
           applyHover();
+        } else if (isClick) {
+          applyClick();
         }
       });
 
@@ -2108,6 +2132,26 @@ const activeIdleTimelines = new Map();
     const delay = opts.delay || 0;
     const ease = opts.ease || 'power2.out';
     const keyId = `scroll_${animationType}_${Math.random().toString(36).substr(2, 9)}`;
+
+    const isManual = opts.triggerMode === 'click';
+    const createTriggerArgs = (triggerEl, baseArgs = {}) => {
+      if (isManual) {
+        return { ...baseArgs, paused: true };
+      }
+      return {
+        ...baseArgs,
+        scrollTrigger: {
+          trigger: triggerEl,
+          start: opts.scrollTriggerPoint || 'top 85%',
+          toggleActions: 'play none none none'
+        }
+      };
+    };
+
+    const bindManualTrigger = (anim, triggerEl) => {
+      if (!isManual) return;
+      triggerEl.addEventListener('click', () => anim.restart());
+    };
 
     switch (animationType) {
       case 'scroll-transform':
@@ -2173,13 +2217,7 @@ const activeIdleTimelines = new Map();
           gsap.set(target, { ...fromVars, force3D: true, immediateRender: true });
 
           // Create timeline for exact parity with default entrance
-          const tl = gsap.timeline({
-            scrollTrigger: {
-              trigger: triggerEl,
-              start: opts.scrollTriggerPoint || 'top 85%',
-              toggleActions: 'play none none none'
-            }
-          });
+          const tl = gsap.timeline(createTriggerArgs(triggerEl));
 
           tl.to(target, {
             ...toVars,
@@ -2187,6 +2225,7 @@ const activeIdleTimelines = new Map();
             ease: ease,
             force3D: true
           }, delay);
+          bindManualTrigger(tl, triggerEl);
         });
         break;
 
@@ -2207,13 +2246,7 @@ const activeIdleTimelines = new Map();
           };
           const fullClip = 'inset(0% 0% 0% 0%)';
 
-          const tl = gsap.timeline({
-            scrollTrigger: {
-              trigger,
-              start: opts.scrollTriggerPoint || 'top 85%',
-              toggleActions: 'play none none none'
-            }
-          });
+          const tl = gsap.timeline(createTriggerArgs(trigger));
           tl.fromTo(
             target,
             { clipPath: clipMap[direction], webkitClipPath: clipMap[direction], autoAlpha: 1 },
@@ -2221,6 +2254,7 @@ const activeIdleTimelines = new Map();
             delay
           );
           tl.from(img, { scale: 1.3, duration, ease }, delay);
+          bindManualTrigger(tl, trigger);
         });
         break;
 
@@ -2237,21 +2271,17 @@ const activeIdleTimelines = new Map();
 
         targetEls.forEach((target, idx) => {
           const trigger = triggerEls[idx] || triggerEls[0] || target;
-          gsap.fromTo(target,
+          const anim = gsap.fromTo(target,
             { clipPath: contClipMap[contDir], webkitClipPath: contClipMap[contDir], autoAlpha: 1 },
-            {
+            createTriggerArgs(trigger, {
               clipPath: fullContClip,
               webkitClipPath: fullContClip,
               duration,
               delay,
-              ease,
-              scrollTrigger: {
-                trigger: trigger,
-                start: opts.scrollTriggerPoint || 'top 85%',
-                toggleActions: 'play none none none'
-              }
-            }
+              ease
+            })
           );
+          bindManualTrigger(anim, trigger);
         });
         break;
 
@@ -2282,18 +2312,14 @@ const activeIdleTimelines = new Map();
             el.style.display = isWord ? 'inline-block' : 'inline-block';
           });
 
-          gsap.from(items, {
+          const anim = gsap.from(items, createTriggerArgs(trigger, {
             y: offset,
             opacity: 0,
             duration,
             stagger: 0.05,
-            ease,
-            scrollTrigger: {
-              trigger: trigger,
-              start: opts.scrollTriggerPoint || 'top 85%',
-              toggleActions: 'play none none none'
-            }
-          });
+            ease
+          }));
+          bindManualTrigger(anim, trigger);
         });
         break;
 
@@ -2303,16 +2329,12 @@ const activeIdleTimelines = new Map();
         triggerEls.forEach((triggerItem, idx) => {
           const targetItem = targetEls[idx] || targetEls[0];
           if (targetItem) {
-            gsap.fromTo(targetItem, transforms.from, {
+            const anim = gsap.fromTo(targetItem, transforms.from, createTriggerArgs(triggerItem, {
               ...transforms.to,
               duration: transforms.duration / opts.speed,
-              ease: transforms.ease,
-              scrollTrigger: {
-                trigger: triggerItem,
-                start: opts.scrollTriggerPoint || 'top 85%',
-                toggleActions: 'play none none none'
-              }
-            });
+              ease: transforms.ease
+            }));
+            bindManualTrigger(anim, triggerItem);
           }
         });
     }

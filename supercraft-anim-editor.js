@@ -299,7 +299,7 @@ function applyStartStateFromStyles(el) {
         }
         const config = {
           trigger: rowTrigger,
-          animationType: row.animation_type || (rowTrigger === 'scroll_into_view' ? 'scroll-transform' : 'simple'),
+          animationType: row.animation_type || (['scroll_into_view', 'click'].includes(rowTrigger) ? 'scroll-transform' : 'simple'),
           triggerElementMode: row.trigger_element_mode || 'self',
           triggerNamed: slugify(row.trigger_named_element || ''),
           animatedElementMode: row.animated_element_mode || 'self',
