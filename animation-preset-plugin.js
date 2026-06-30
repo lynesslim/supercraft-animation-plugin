@@ -694,7 +694,28 @@ document.addEventListener('DOMContentLoaded', function () {
       const baseOverride =
         (wrapperStyles.getPropertyValue('--scroll-fill-base') || '').trim() ||
         (wrapper.dataset.scrollFillBase || '').trim();
-      const originalColorStr = getComputedStyle(el).color;
+
+      // Resolve the text color robustly — getComputedStyle resolves CSS vars,
+      // but we need to read from the correct element and handle edge cases.
+      const resolveColor = (element) => {
+        let color = getComputedStyle(element).color;
+        // If color is empty, transparent, or the default black placeholder,
+        // try to read from the element's webkitTextFillColor in case it was set
+        if (!color || color === 'rgba(0, 0, 0, 0)' || color === 'transparent') {
+          color = getComputedStyle(element).webkitTextFillColor;
+        }
+        return color;
+      };
+
+      let originalColorStr = resolveColor(el);
+      // If still no color or transparent, walk up to the wrapper
+      if (!originalColorStr || originalColorStr === 'rgba(0, 0, 0, 0)' || originalColorStr === 'transparent') {
+        originalColorStr = resolveColor(wrapper);
+      }
+      // Final fallback to black
+      if (!originalColorStr || originalColorStr === 'rgba(0, 0, 0, 0)' || originalColorStr === 'transparent') {
+        originalColorStr = 'rgb(0, 0, 0)';
+      }
 
       const hexToRgba = (hex) => {
         const clean = hex.replace('#', '');
@@ -721,6 +742,16 @@ document.addEventListener('DOMContentLoaded', function () {
           };
         }
         if (str.startsWith('#')) return hexToRgba(str);
+        // Handle CSS variables that weren't resolved — use a temp element
+        if (str.startsWith('var(')) {
+          const temp = document.createElement('span');
+          temp.style.color = str;
+          temp.style.display = 'none';
+          document.body.appendChild(temp);
+          const resolved = getComputedStyle(temp).color;
+          document.body.removeChild(temp);
+          return parseColor(resolved);
+        }
         return null;
       };
 
@@ -736,13 +767,40 @@ document.addEventListener('DOMContentLoaded', function () {
       const fullColor = `rgba(${originalParsed.r}, ${originalParsed.g}, ${originalParsed.b}, 1)`;
 
       // Two-layer background: base stays visible, fill overlays as it grows
-      el.style.backgroundImage = `linear-gradient(to right, ${fullColor}, ${fullColor}), linear-gradient(${dimColor}, ${dimColor})`;
-      el.style.backgroundRepeat = 'no-repeat, no-repeat';
-      el.style.backgroundSize = '0% 100%, 100% 100%';
-      el.style.webkitBackgroundClip = 'text';
-      el.style.backgroundClip = 'text';
-      el.style.webkitTextFillColor = 'transparent';
-      el.style.display = 'inline-block'; // Required for backgroundClip to work properly
+      // Use cssText to ensure -webkit-background-clip: text is preserved literally
+      // (el.style.webkitBackgroundClip can be normalized/dropped by some browsers)
+      const existingStyle = el.getAttribute('style') || '';
+      // Strip any previously injected scroll-fill styles to avoid duplicates on re-init
+      const cleaned = existingStyle
+        .replace(/background-image:[^;]*;?/gi, '')
+        .replace(/background-repeat:[^;]*;?/gi, '')
+        .replace(/background-size:[^;]*;?/gi, '')
+        .replace(/-webkit-background-clip:[^;]*;?/gi, '')
+        .replace(/background-clip:[^;]*;?/gi, '')
+        .replace(/-webkit-text-fill-color:[^;]*;?/gi, '')
+        .replace(/display:\s*inline-block[^;]*;?/gi, '')
+        .replace(/color:\s*transparent[^;]*;?/gi, '')
+        .trim();
+      
+      const scrollFillStyles = [
+        `background-image: linear-gradient(to right, ${fullColor}, ${fullColor}), linear-gradient(${dimColor}, ${dimColor})`,
+        'background-repeat: no-repeat, no-repeat',
+        'background-size: 0% 100%, 100% 100%',
+        '-webkit-background-clip: text',
+        'background-clip: text',
+        '-webkit-text-fill-color: transparent',
+        'color: transparent',
+        'display: inline-block',
+      ].join(' !important; ') + ' !important';
+      
+      el.setAttribute('style', cleaned + '; ' + scrollFillStyles);
+      
+      // Propagate to child elements (spans, etc.) that Elementor may have
+      // given their own color — which would override inherited transparent
+      el.querySelectorAll('span, a, strong, em, b, i').forEach((child) => {
+        child.style.setProperty('-webkit-text-fill-color', 'transparent', 'important');
+        child.style.setProperty('color', 'transparent', 'important');
+      });
 
 // Get scroll trigger values - prefer data attributes, then CSS vars, then fallback
 const getScrollValue = (dataKey, cssVar, fallback) => {
@@ -797,16 +855,16 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
 
             // Process each line - staggered triggers within the scroll range
             lines.forEach((lineEl, index) => {
-              // Style the line
+              // Style the line with robust webkit prefix handling
               lineEl.style.display = 'inline';
               lineEl.style.width = 'auto';
-              lineEl.style.background = `linear-gradient(to right, ${fullColor}, ${fullColor}), linear-gradient(to right, ${dimColor}, ${dimColor})`;
-              lineEl.style.backgroundRepeat = 'no-repeat, no-repeat';
-              lineEl.style.backgroundSize = '0% 100%, 100% 100%';
-              lineEl.style.webkitBackgroundClip = 'text';
-              lineEl.style.backgroundClip = 'text';
-              lineEl.style.webkitTextFillColor = 'transparent';
-              lineEl.style.color = dimColor;
+              lineEl.style.setProperty('background', `linear-gradient(to right, ${fullColor}, ${fullColor}), linear-gradient(to right, ${dimColor}, ${dimColor})`, 'important');
+              lineEl.style.setProperty('background-repeat', 'no-repeat, no-repeat', 'important');
+              lineEl.style.setProperty('background-size', '0% 100%, 100% 100%', 'important');
+              lineEl.style.setProperty('-webkit-background-clip', 'text', 'important');
+              lineEl.style.setProperty('background-clip', 'text', 'important');
+              lineEl.style.setProperty('-webkit-text-fill-color', 'transparent', 'important');
+              lineEl.style.setProperty('color', 'transparent', 'important');
 
               // Calculate staggered start/end for this line
               // Line 0: start at scrollStart, end at scrollStart - (1/totalLines * range)
@@ -1486,12 +1544,50 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
   function initVideoGSAP() {
     const videoContainers = gsap.utils.toArray('.video-gsap-init');
 
+    // Detect iOS and general mobile
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isMobile = isIOS || /Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    // ── Shared mobile video unlock ──────────────────────────────
+    // Mobile browsers block programmatic video playback until a
+    // user-initiated gesture occurs.  We collect every scroll-scrub
+    // video and "warm" them all on the first interaction.
+    const videosToUnlock = [];
+    let mobileUnlocked = false;
+
+    function unlockVideos() {
+      if (mobileUnlocked) return;
+      mobileUnlocked = true;
+
+      videosToUnlock.forEach((v) => {
+        const p = v.play();
+        if (p !== undefined) {
+          p.then(() => { v.pause(); v.currentTime = 0; })
+           .catch(() => { v.pause(); });
+        }
+      });
+
+      // Tear down all listeners once unlocked
+      unlockEvents.forEach((evt) => {
+        document.removeEventListener(evt, unlockVideos, true);
+      });
+    }
+
+    const unlockEvents = ['touchstart', 'touchend', 'click', 'pointerdown', 'scroll'];
+    if (isMobile) {
+      unlockEvents.forEach((evt) => {
+        document.addEventListener(evt, unlockVideos, { capture: true, passive: true });
+      });
+    }
+
+    // ── Per-container setup ─────────────────────────────────────
     videoContainers.forEach((container) => {
       if (container.dataset.videoGsapInit === 'true') return;
 
       const video = container.querySelector('video');
       if (!video) {
-        return; // Don't mark init, it might be injected later by Elementor
+        return; // Don't mark init — Elementor may inject the video later
       }
 
       const isScrollScrub = container.classList.contains('video-gsap-scroll-scrub');
@@ -1502,76 +1598,134 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
 
       container.dataset.videoGsapInit = 'true';
 
-      // Force pause and strip autoplay to prevent fighting with GSAP scrubbing
-      video.removeAttribute('autoplay');
+      // ── Force mobile-compatible attributes ────────────────────
+      video.setAttribute('playsinline', '');
+      video.setAttribute('webkit-playsinline', '');
+      video.setAttribute('preload', 'auto');
+      video.muted = true;               // Required by autoplay policies
+      video.removeAttribute('autoplay'); // GSAP controls playback
       video.removeAttribute('loop');
       video.pause();
 
-      let src = video.currentSrc || video.src || video.querySelector('source')?.src;
-      
-      // Make sure the video is 'activated' on iOS
-      function once(el, event, fn, opts) {
-        var onceFn = function (e) {
-          el.removeEventListener(event, onceFn);
-          fn.apply(this, arguments);
-        };
-        el.addEventListener(event, onceFn, opts);
-        return onceFn;
+      // Register for the shared unlock
+      if (isMobile) {
+        videosToUnlock.push(video);
       }
-      
-      once(document.documentElement, 'touchstart', function (e) {
-        let playPromise = video.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(()=>{});
-        }
-        video.pause();
-      });
+
+      let src = video.currentSrc || video.src || (video.querySelector('source') || {}).src;
 
       const scrollStart = container.dataset.videoScrollStart || 'top top';
-      const scrollEnd = container.dataset.videoScrollEnd || 'bottom bottom';
-      const fetchDelay = parseInt(container.dataset.videoFetchDelay || '1000', 10);
-      const smoothing = parseFloat(container.dataset.videoScrubSmoothing || '0.5');
+      const scrollEnd   = container.dataset.videoScrollEnd   || 'bottom bottom';
+      const fetchDelay  = parseInt(container.dataset.videoFetchDelay || '1000', 10);
+      const smoothing   = parseFloat(container.dataset.videoScrubSmoothing || '0.5');
 
-      let tl = gsap.timeline({
-        defaults: { duration: 1 },
-        scrollTrigger: {
-          trigger: container,
-          start: scrollStart,
-          end: scrollEnd,
-          scrub: smoothing
+      // ── iOS-safe currentTime update via RAF ───────────────────
+      // iOS aggressively throttles direct `video.currentTime = x`
+      // calls from rAF/scroll handlers.  Using a proxy + single
+      // RAF coalesces updates and avoids dropped frames.
+      let targetTime = 0;
+      let rafPending = false;
+
+      function smoothSeek() {
+        rafPending = false;
+        if (Math.abs(video.currentTime - targetTime) > 0.01) {
+          video.currentTime = targetTime;
         }
-      });
-
-      // If metadata already loaded, setup tween right away, else wait
-      if (video.readyState >= 1) {
-        tl.fromTo(video, { currentTime: 0 }, { currentTime: video.duration || 1 });
-      } else {
-        once(video, 'loadedmetadata', () => {
-          tl.fromTo(video, { currentTime: 0 }, { currentTime: video.duration || 1 });
-        });
       }
 
-      setTimeout(function () {
-        if (window.fetch && src && !src.startsWith('blob:')) {
-          fetch(src)
-            .then((response) => response.blob())
-            .then((blob) => {
-              var blobURL = URL.createObjectURL(blob);
-              var t = video.currentTime;
-              once(document.documentElement, 'touchstart', function (e) {
-                let playPromise = video.play();
-                if (playPromise !== undefined) {
-                  playPromise.catch(()=>{});
-                }
-                video.pause();
-              });
-              video.setAttribute('src', blobURL);
-              video.currentTime = t + 0.01;
-            })
-            .catch(() => {});
-        }
-      }, fetchDelay);
+      // ── Build ScrollTrigger timeline ──────────────────────────
+      function setupTimeline(duration) {
+        if (!duration || !isFinite(duration) || duration <= 0) return;
 
+        const tl = gsap.timeline({
+          defaults: { duration: 1 },
+          scrollTrigger: {
+            trigger: container,
+            start: scrollStart,
+            end: scrollEnd,
+            scrub: smoothing,
+          },
+        });
+
+        if (isIOS) {
+          // Proxy approach: animate a plain object and apply via RAF
+          const proxy = { t: 0 };
+          tl.fromTo(proxy, { t: 0 }, {
+            t: duration,
+            onUpdate() {
+              targetTime = proxy.t;
+              if (!rafPending) {
+                rafPending = true;
+                requestAnimationFrame(smoothSeek);
+              }
+            },
+          });
+        } else {
+          // Desktop & Android: direct currentTime tween
+          tl.fromTo(video, { currentTime: 0 }, { currentTime: duration });
+        }
+      }
+
+      // ── Wait for video metadata ───────────────────────────────
+      function initTimeline() {
+        const dur = video.duration;
+        if (!dur || !isFinite(dur) || dur <= 0) return;
+        setupTimeline(dur);
+      }
+
+      if (video.readyState >= 1 && isFinite(video.duration) && video.duration > 0) {
+        initTimeline();
+      } else {
+        const onMeta = () => {
+          video.removeEventListener('loadedmetadata', onMeta);
+          clearTimeout(metaFallback);
+          initTimeline();
+        };
+        video.addEventListener('loadedmetadata', onMeta);
+
+        // Fallback: mobile browsers may not load metadata until a
+        // gesture occurs.  After 5 s, force a load() call and wait
+        // once more for the event.
+        const metaFallback = setTimeout(() => {
+          video.removeEventListener('loadedmetadata', onMeta);
+          video.load(); // re-trigger the load pipeline
+          video.addEventListener('loadedmetadata', () => initTimeline(), { once: true });
+        }, 5000);
+      }
+
+      // ── Blob fetch for smoother scrubbing ─────────────────────
+      // Re-assigning the src to a blob URL allows the browser to
+      // seek freely without range-request round-trips, which is
+      // critical on mobile networks.
+      setTimeout(function () {
+        if (!window.fetch || !src || src.startsWith('blob:')) return;
+
+        fetch(src, { mode: 'cors' })
+          .then((res) => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.blob();
+          })
+          .then((blob) => {
+            const blobURL = URL.createObjectURL(blob);
+            const t = video.currentTime;
+            video.setAttribute('src', blobURL);
+            video.currentTime = t + 0.01;
+
+            // After src change, re-register for mobile unlock if
+            // the user hasn't interacted yet
+            if (isMobile && !mobileUnlocked) {
+              videosToUnlock.push(video);
+            }
+          })
+          .catch((err) => {
+            // Blob fetch failure is non-fatal; the original src is
+            // still usable — just with potentially jerkier mobile
+            // scrubbing due to range-request latency.
+            if (typeof console !== 'undefined' && console.info) {
+              console.info('Video GSAP: blob pre-fetch skipped —', err.message || err);
+            }
+          });
+      }, fetchDelay);
     });
   }
 
@@ -2560,6 +2714,82 @@ const activeIdleTimelines = new Map();
   }
 
   /* ==========================================
+     SCROLL BACKGROUND COLOR ANIMATION
+     ========================================== */
+  function initScrollBgColor() {
+    const elements = gsap.utils.toArray('.scroll-bg-color');
+
+    elements.forEach((el) => {
+      // Avoid double initialization unless it's a preview play trigger
+      const isPreviewPlay = el.getAttribute('data-supercraft-preview-play') === 'yes';
+      if (el.dataset.scrollBgColorInit === 'true' && !isPreviewPlay) return;
+
+      const targetColor = el.dataset.bgColorTarget;
+      if (!targetColor) return;
+
+      const scrubEnabled = el.dataset.bgColorScrub === 'yes';
+      const startTrigger = el.dataset.bgColorStart || 'top 85%';
+      const endTrigger = el.dataset.bgColorEnd || 'top 50%';
+      
+      const duration = parseFloat(el.dataset.bgColorDuration) || 1;
+      const delay = isPreviewPlay ? 0 : (parseFloat(el.dataset.bgColorDelay) || 0);
+      const ease = el.dataset.bgColorEase || 'power2.out';
+      const forwardOnly = el.dataset.bgColorForward === 'true';
+
+      // Capture original background color.
+      // If we already captured it, use the stored one to avoid capturing a halfway state during re-inits.
+      if (!el.dataset.bgColorOriginal) {
+        let originalColor = getComputedStyle(el).backgroundColor;
+        if (originalColor === 'rgba(0, 0, 0, 0)' || originalColor === 'transparent') {
+          originalColor = 'rgba(255, 255, 255, 0)';
+        }
+        el.dataset.bgColorOriginal = originalColor;
+      }
+      
+      const originalColor = el.dataset.bgColorOriginal;
+
+      // Reset style to original before building the animation
+      gsap.set(el, { backgroundColor: originalColor });
+
+      if (scrubEnabled) {
+        gsap.to(el, {
+          backgroundColor: targetColor,
+          ease: 'none', // Scrubbing feels best with linear ease
+          scrollTrigger: {
+            trigger: el,
+            start: startTrigger,
+            end: endTrigger,
+            scrub: 0.4,
+            onUpdate: (self) => {
+              if (forwardOnly) {
+                const max = Math.max(self.progress, self._maxProgress || 0);
+                self._maxProgress = max;
+                if (self.progress < max) {
+                  self.animation.progress(max);
+                }
+              }
+            },
+          },
+        });
+      } else {
+        gsap.to(el, {
+          backgroundColor: targetColor,
+          duration: duration,
+          delay: delay,
+          ease: ease,
+          scrollTrigger: {
+            trigger: el,
+            start: startTrigger,
+            toggleActions: 'play none none none',
+          },
+        });
+      }
+
+      el.dataset.scrollBgColorInit = 'true';
+    });
+  }
+
+  /* ==========================================
      MASTER INIT
      ========================================== */
   function initAllAnimations() {
@@ -2573,6 +2803,7 @@ const activeIdleTimelines = new Map();
     initSectionTransitions();
     initAdvancedAnimations();
     initTextReveal();
+    initScrollBgColor();
   }
 
   initAllAnimations();
@@ -2586,6 +2817,7 @@ const activeIdleTimelines = new Map();
   window.initContainerReveal = initContainerReveal;
   window.initAdvancedAnimations = initAdvancedAnimations;
   window.initTextReveal = initTextReveal;
+  window.initScrollBgColor = initScrollBgColor;
 
   // Listen for re-init requests posted from the Elementor editor (main window → iframe)
   window.addEventListener('message', function (e) {
@@ -2602,7 +2834,7 @@ const activeIdleTimelines = new Map();
     // gsap.killTweensOf('*');
     
     document.querySelectorAll(
-      '[data-scroll-transform-init],[data-scroll-transform-scrub-init],[data-image-reveal-init],[data-container-reveal-init],[data-video-gsap-init],[data-scroll-fill-init],[data-anim-init],[data-advanced-init],[data-st-init],[data-text-reveal-init]'
+      '[data-scroll-transform-init],[data-scroll-transform-scrub-init],[data-image-reveal-init],[data-container-reveal-init],[data-video-gsap-init],[data-scroll-fill-init],[data-anim-init],[data-advanced-init],[data-st-init],[data-text-reveal-init],[data-scroll-bg-color-init]'
     ).forEach(function (el) {
       delete el.dataset.scrollTransformInit;
       delete el.dataset.scrollTransformScrubInit;
@@ -2614,6 +2846,7 @@ const activeIdleTimelines = new Map();
       delete el.dataset.advancedInit;
       delete el.dataset.stInit;
       delete el.dataset.textRevealInit;
+      delete el.dataset.scrollBgColorInit;
       
       // Clear SplitType instances if any (so they can be safely re-split)
       if (el.isSplit) {

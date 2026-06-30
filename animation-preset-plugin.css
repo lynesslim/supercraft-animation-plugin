@@ -307,6 +307,39 @@ body:not(.elementor-editor-active) .blur-reveal {
   /* gradient/clip/etc will be set by JS */
 }
 
+/* Ensure webkit prefix is always present for background-clip: text.
+   Some browsers normalize el.style.webkitBackgroundClip away.
+   The actual gradient values are injected by JS; this ensures the
+   clip mode sticks even if the browser drops the inline -webkit- prefix. */
+.scroll-fill-text .elementor-heading-title,
+.scroll-fill-text p,
+.scroll-fill-text h1,
+.scroll-fill-text h2,
+.scroll-fill-text h3,
+.scroll-fill-text h4,
+.scroll-fill-text h5,
+.scroll-fill-text h6 {
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+}
+
+/* Force child text elements to inherit transparent fill so
+   Elementor's own color declarations don't override the effect */
+.scroll-fill-text p span,
+.scroll-fill-text p a,
+.scroll-fill-text p strong,
+.scroll-fill-text p em,
+.scroll-fill-text h1 span,
+.scroll-fill-text h2 span,
+.scroll-fill-text h3 span,
+.scroll-fill-text h4 span,
+.scroll-fill-text h5 span,
+.scroll-fill-text h6 span,
+.scroll-fill-text .elementor-heading-title span {
+  -webkit-text-fill-color: inherit !important;
+  color: inherit !important;
+}
+
 /* ================================
    SCROLL TRANSFORM – customizable transform animation
    Works for any widget with class "scroll-transform"

@@ -473,6 +473,46 @@ function supercraft_apply_attrs($element) {
                 $data_attrs['data-tr-loop'] = 'true';
             }
             break;
+
+        case 'scroll-bg-color':
+            $classes[] = 'scroll-bg-color';
+            $isScrub = !empty($settings['supercraft_bg_color_scrub']);
+            $data_attrs['data-bg-color-scrub'] = $isScrub ? 'yes' : 'no';
+
+            $targetColor = '';
+            if (!empty($settings['supercraft_bg_color_target'])) {
+                $targetColor = supercraft_normalize_color($settings['supercraft_bg_color_target']);
+            }
+            if (empty($targetColor) && !empty($settings['__globals__']['supercraft_bg_color_target'])) {
+                $targetColor = supercraft_global_css_var($settings['__globals__']['supercraft_bg_color_target']);
+            }
+            if (!empty($targetColor)) {
+                $data_attrs['data-bg-color-target'] = esc_attr($targetColor);
+            }
+
+            if (!empty($settings['supercraft_bg_color_start'])) {
+                $data_attrs['data-bg-color-start'] = esc_attr($settings['supercraft_bg_color_start']);
+            }
+
+            if ($isScrub) {
+                if (!empty($settings['supercraft_bg_color_end'])) {
+                    $data_attrs['data-bg-color-end'] = esc_attr($settings['supercraft_bg_color_end']);
+                }
+                if (!empty($settings['supercraft_bg_color_forward'])) {
+                    $data_attrs['data-bg-color-forward'] = 'true';
+                }
+            } else {
+                if ($settings['supercraft_bg_color_duration'] !== '' && $settings['supercraft_bg_color_duration'] !== null) {
+                    $data_attrs['data-bg-color-duration'] = esc_attr($settings['supercraft_bg_color_duration']);
+                }
+                if ($settings['supercraft_bg_color_delay'] !== '' && $settings['supercraft_bg_color_delay'] !== null) {
+                    $data_attrs['data-bg-color-delay'] = esc_attr($settings['supercraft_bg_color_delay']);
+                }
+                if (!empty($settings['supercraft_bg_color_ease'])) {
+                    $data_attrs['data-bg-color-ease'] = esc_attr($settings['supercraft_bg_color_ease']);
+                }
+            }
+            break;
     }
     }
 

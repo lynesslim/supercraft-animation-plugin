@@ -107,6 +107,7 @@ $supercraft_controls_callback = function ($element, $section_id) {
         'container-reveal' => __('Container Reveal', 'supercraft-anim'),
         'scroll-fill-text' => __('Scroll Fill Text', 'supercraft-anim'),
         'text-reveal'      => __('Text Reveal', 'supercraft-anim'),
+        'scroll-bg-color'  => __('Scroll Background Color', 'supercraft-anim'),
         'video-gsap' => __('Video GSAP', 'supercraft-anim'),
     ];
 
@@ -1303,6 +1304,120 @@ $supercraft_controls_callback = function ($element, $section_id) {
         ]
     );
 
+    // Scroll Background Color controls
+    $element->add_control(
+        'supercraft_bg_color_target',
+        [
+            'label' => __('Target Background Color', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::COLOR,
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'scroll-bg-color',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_bg_color_scrub',
+        [
+            'label' => __('Enable Scroll Scrub', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::SWITCHER,
+            'return_value' => 'yes',
+            'default' => 'yes',
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'scroll-bg-color',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_bg_color_start',
+        [
+            'label' => __('Scroll Start', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::TEXT,
+            'default' => 'top 85%',
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'scroll-bg-color',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_bg_color_end',
+        [
+            'label' => __('Scroll End', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::TEXT,
+            'default' => 'top 50%',
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'scroll-bg-color',
+                'supercraft_bg_color_scrub' => 'yes',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_bg_color_duration',
+        [
+            'label' => __('Duration (s)', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::NUMBER,
+            'step' => 0.1,
+            'default' => 1,
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'scroll-bg-color',
+                'supercraft_bg_color_scrub!' => 'yes',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_bg_color_delay',
+        [
+            'label' => __('Delay (s)', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::NUMBER,
+            'step' => 0.1,
+            'default' => 0,
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'scroll-bg-color',
+                'supercraft_bg_color_scrub!' => 'yes',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_bg_color_ease',
+        [
+            'label' => __('Ease', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::SELECT,
+            'options' => $ease_options,
+            'default' => 'power2.out',
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'scroll-bg-color',
+                'supercraft_bg_color_scrub!' => 'yes',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_bg_color_forward',
+        [
+            'label' => __('Forward Only', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::SWITCHER,
+            'return_value' => 'yes',
+            'default' => '',
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'scroll-bg-color',
+                'supercraft_bg_color_scrub' => 'yes',
+            ],
+        ]
+    );
+
     $element->end_controls_tab();
 
     $element->start_controls_tab('supercraft_tab_advanced', [
@@ -1660,7 +1775,11 @@ $supercraft_controls_callback = function ($element, $section_id) {
                                 'operator' => '===',
                                 'value' => 'custom-transform',
                             ],
-                            
+                            [
+                                'name' => 'hover_effect',
+                                'operator' => '===',
+                                'value' => 'custom-transform',
+                            ],
                             [
                                 'name' => 'scroll_preset',
                                 'operator' => '===',
@@ -1682,7 +1801,11 @@ $supercraft_controls_callback = function ($element, $section_id) {
                                 'operator' => '===',
                                 'value' => 'custom-transform',
                             ],
-                            
+                            [
+                                'name' => 'hover_effect',
+                                'operator' => '===',
+                                'value' => 'custom-transform',
+                            ],
                             [
                                 'name' => 'scroll_preset',
                                 'operator' => '===',
@@ -1704,7 +1827,11 @@ $supercraft_controls_callback = function ($element, $section_id) {
                                 'operator' => '===',
                                 'value' => 'custom-transform',
                             ],
-                            
+                            [
+                                'name' => 'hover_effect',
+                                'operator' => '===',
+                                'value' => 'custom-transform',
+                            ],
                             [
                                 'name' => 'scroll_preset',
                                 'operator' => '===',
@@ -1727,7 +1854,11 @@ $supercraft_controls_callback = function ($element, $section_id) {
                                 'operator' => '===',
                                 'value' => 'custom-transform',
                             ],
-                            
+                            [
+                                'name' => 'hover_effect',
+                                'operator' => '===',
+                                'value' => 'custom-transform',
+                            ],
                             [
                                 'name' => 'scroll_preset',
                                 'operator' => '===',
@@ -1750,7 +1881,11 @@ $supercraft_controls_callback = function ($element, $section_id) {
                                 'operator' => '===',
                                 'value' => 'custom-transform',
                             ],
-                            
+                            [
+                                'name' => 'hover_effect',
+                                'operator' => '===',
+                                'value' => 'custom-transform',
+                            ],
                             [
                                 'name' => 'scroll_preset',
                                 'operator' => '===',
@@ -1772,7 +1907,11 @@ $supercraft_controls_callback = function ($element, $section_id) {
                                 'operator' => '===',
                                 'value' => 'custom-transform',
                             ],
-                            
+                            [
+                                'name' => 'hover_effect',
+                                'operator' => '===',
+                                'value' => 'custom-transform',
+                            ],
                             [
                                 'name' => 'scroll_preset',
                                 'operator' => '===',

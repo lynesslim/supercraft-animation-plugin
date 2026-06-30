@@ -1,0 +1,3 @@
+# OpenCode Connection Test
+
+Please create a file named `OPENCODE_TEST.txt` in this directory containing the text: "OpenCode connection is working successfully!"
