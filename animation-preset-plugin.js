@@ -1550,9 +1550,6 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
     const isMobile = isIOS || /Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
     // ── Shared mobile video unlock ──────────────────────────────
-    // Mobile browsers block programmatic video playback until a
-    // user-initiated gesture occurs.  We collect every scroll-scrub
-    // video and "warm" them all on the first interaction.
     const videosToUnlock = [];
     let mobileUnlocked = false;
 
@@ -1568,7 +1565,6 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
         }
       });
 
-      // Tear down all listeners once unlocked
       unlockEvents.forEach((evt) => {
         document.removeEventListener(evt, unlockVideos, true);
       });
@@ -1602,8 +1598,8 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
       video.setAttribute('playsinline', '');
       video.setAttribute('webkit-playsinline', '');
       video.setAttribute('preload', 'auto');
-      video.muted = true;               // Required by autoplay policies
-      video.removeAttribute('autoplay'); // GSAP controls playback
+      video.muted = true;
+      video.removeAttribute('autoplay');
       video.removeAttribute('loop');
       video.pause();
 
@@ -1619,10 +1615,45 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
       const fetchDelay  = parseInt(container.dataset.videoFetchDelay || '1000', 10);
       const smoothing   = parseFloat(container.dataset.videoScrubSmoothing || '0.5');
 
-      // ── iOS-safe currentTime update via RAF ───────────────────
-      // iOS aggressively throttles direct `video.currentTime = x`
-      // calls from rAF/scroll handlers.  Using a proxy + single
-      // RAF coalesces updates and avoids dropped frames.
+      // ── Canvas Setup for Mobile ────────────────────────────────
+      let canvas = null;
+      let ctx = null;
+      let useCanvas = isMobile;
+
+      if (useCanvas) {
+        canvas = document.createElement('canvas');
+        ctx = canvas.getContext('2d');
+        
+        // Match video styling/classes to canvas
+        canvas.className = video.className;
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.objectFit = getComputedStyle(video).objectFit || 'cover';
+        canvas.style.display = 'block';
+
+        // Hide video, insert canvas
+        video.style.display = 'none';
+        video.parentNode.insertBefore(canvas, video);
+      }
+
+      // Render video frame to canvas
+      function renderFrame() {
+        if (!useCanvas || !canvas || !ctx || !video) return;
+        
+        // Match canvas dimensions to video's actual resolution
+        if (video.videoWidth && canvas.width !== video.videoWidth) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+        }
+
+        try {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        } catch (e) {
+          // If frame drawing fails (e.g. video not ready), ignore
+        }
+      }
+
+      // ── Seek logic ─────────────────────────────────────────────
       let targetTime = 0;
       let rafPending = false;
 
@@ -1631,6 +1662,14 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
         if (Math.abs(video.currentTime - targetTime) > 0.01) {
           video.currentTime = targetTime;
         }
+        if (useCanvas) {
+          renderFrame();
+        }
+      }
+
+      // Also render on seeked event to catch the final frame position
+      if (useCanvas) {
+        video.addEventListener('seeked', renderFrame);
       }
 
       // ── Build ScrollTrigger timeline ──────────────────────────
@@ -1644,11 +1683,16 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
             start: scrollStart,
             end: scrollEnd,
             scrub: smoothing,
+            onUpdate: () => {
+              if (useCanvas) {
+                renderFrame();
+              }
+            }
           },
         });
 
-        if (isIOS) {
-          // Proxy approach: animate a plain object and apply via RAF
+        if (isMobile) {
+          // Proxy approach for mobile (critical for iOS and Android rendering pipeline)
           const proxy = { t: 0 };
           tl.fromTo(proxy, { t: 0 }, {
             t: duration,
@@ -1661,7 +1705,7 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
             },
           });
         } else {
-          // Desktop & Android: direct currentTime tween
+          // Desktop: direct currentTime tween
           tl.fromTo(video, { currentTime: 0 }, { currentTime: duration });
         }
       }
@@ -1671,6 +1715,10 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
         const dur = video.duration;
         if (!dur || !isFinite(dur) || dur <= 0) return;
         setupTimeline(dur);
+        if (useCanvas) {
+          // Render initial frame
+          setTimeout(renderFrame, 200);
+        }
       }
 
       if (video.readyState >= 1 && isFinite(video.duration) && video.duration > 0) {
@@ -1683,20 +1731,14 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
         };
         video.addEventListener('loadedmetadata', onMeta);
 
-        // Fallback: mobile browsers may not load metadata until a
-        // gesture occurs.  After 5 s, force a load() call and wait
-        // once more for the event.
         const metaFallback = setTimeout(() => {
           video.removeEventListener('loadedmetadata', onMeta);
-          video.load(); // re-trigger the load pipeline
+          video.load();
           video.addEventListener('loadedmetadata', () => initTimeline(), { once: true });
         }, 5000);
       }
 
       // ── Blob fetch for smoother scrubbing ─────────────────────
-      // Re-assigning the src to a blob URL allows the browser to
-      // seek freely without range-request round-trips, which is
-      // critical on mobile networks.
       setTimeout(function () {
         if (!window.fetch || !src || src.startsWith('blob:')) return;
 
@@ -1711,16 +1753,14 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
             video.setAttribute('src', blobURL);
             video.currentTime = t + 0.01;
 
-            // After src change, re-register for mobile unlock if
-            // the user hasn't interacted yet
             if (isMobile && !mobileUnlocked) {
               videosToUnlock.push(video);
             }
+            if (useCanvas) {
+              setTimeout(renderFrame, 200);
+            }
           })
           .catch((err) => {
-            // Blob fetch failure is non-fatal; the original src is
-            // still usable — just with potentially jerkier mobile
-            // scrubbing due to range-request latency.
             if (typeof console !== 'undefined' && console.info) {
               console.info('Video GSAP: blob pre-fetch skipped —', err.message || err);
             }
