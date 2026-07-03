@@ -8,9 +8,10 @@ function supercraft_is_validated() {
         return true;
     }
 
-    $status = get_option('supercraft_validation_status', 'not_set');
-    return $status === 'valid';
+    $local_status = get_option('supercraft_validation_status', 'not_set') === 'valid';
+    return apply_filters('supercraft_is_plugin_validated', $local_status, 'supercraft-superanimation');
 }
+
 
 function supercraft_get_validation_status() {
     return get_option('supercraft_validation_status', 'not_set');

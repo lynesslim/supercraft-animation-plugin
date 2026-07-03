@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: supercraft_anim_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress_password
+    volumes:
+      - db_data:/var/lib/mysql
+
+  wordpress:
+    image: wordpress:latest
+    container_name: supercraft_anim_wordpress
+    restart: always
+    ports:
+      - "8890:80"
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress_password
+      WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - wordpress_data:/var/www/html
+      # Mount the current plugin directory directly
+      - .:/var/www/html/wp-content/plugins/supercraft-animation-plugin
+      # Mount elementor plugins from the home directory location
+      - /Users/lynesslim/.supercraft-local-plugins/elementor:/var/www/html/wp-content/plugins/elementor
+      - /Users/lynesslim/.supercraft-local-plugins/pro-elements:/var/www/html/wp-content/plugins/pro-elements
+      # Mount the local themes
+      - ./local-themes/hello-elementor:/var/www/html/wp-content/themes/hello-elementor
+      # Mount a local uploads directory so uploaded media persists
+      - ./wp-uploads:/var/www/html/wp-content/uploads
+
+volumes:
+  db_data:
+  wordpress_data:

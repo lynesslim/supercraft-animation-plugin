@@ -7,3 +7,5 @@ local-themes/
 __MACOSX/
 *.zip
 supercraft-config.php
+wp-uploads/
+

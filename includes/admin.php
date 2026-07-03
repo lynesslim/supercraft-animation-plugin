@@ -18,6 +18,7 @@ function supercraft_render_admin_page() {
     $embed_code = get_option('supercraft_embed_code', '');
     $last_validated = get_option('supercraft_last_validated', '');
     $lenis_enabled = get_option('supercraft_lenis_enabled', '1');
+    $is_master_active = has_filter('supercraft_is_plugin_validated');
 
     ?>
     <div class="wrap">
@@ -29,40 +30,48 @@ function supercraft_render_admin_page() {
             </div>
         <?php endif; ?>
 
+        <?php if ($is_master_active): ?>
+            <div class="notice notice-info">
+                <p>License validation is managed globally by the <strong>Supercraft Master Plugin</strong>.</p>
+            </div>
+        <?php endif; ?>
+
         <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
             <?php wp_nonce_field('supercraft_save_settings'); ?>
             <input type="hidden" name="action" value="supercraft_save_embed_code">
 
             <table class="form-table">
-                <tr>
-                    <th scope="row">
-                        <label for="supercraft_embed_code">Embed Code</label>
-                    </th>
-                    <td>
-                        <input type="text" 
-                               id="supercraft_embed_code" 
-                               name="supercraft_embed_code" 
-                               class="regular-text" 
-                               value="<?php echo esc_attr($embed_code); ?>"
-                               placeholder="Enter your embed code"
-                               <?php echo ($status === 'valid') ? 'readonly' : ''; ?>>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">Status</th>
-                    <td>
-                        <?php if ($status === 'valid'): ?>
-                            <span style="color: green; font-weight: bold;">Valid</span>
-                        <?php elseif ($status === 'invalid'): ?>
-                            <span style="color: red; font-weight: bold;">Invalid</span>
-                        <?php else: ?>
-                            <span style="color: gray;">Not Set</span>
-                        <?php endif; ?>
-                        <?php if ($last_validated): ?>
-                            <p class="description">Last validated: <?php echo esc_html($last_validated); ?></p>
-                        <?php endif; ?>
-                    </td>
-                </tr>
+                <?php if (!$is_master_active): ?>
+                    <tr>
+                        <th scope="row">
+                            <label for="supercraft_embed_code">Embed Code</label>
+                        </th>
+                        <td>
+                            <input type="text" 
+                                   id="supercraft_embed_code" 
+                                   name="supercraft_embed_code" 
+                                   class="regular-text" 
+                                   value="<?php echo esc_attr($embed_code); ?>"
+                                   placeholder="Enter your embed code"
+                                   <?php echo ($status === 'valid') ? 'readonly' : ''; ?>>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Status</th>
+                        <td>
+                            <?php if ($status === 'valid'): ?>
+                                <span style="color: green; font-weight: bold;">Valid</span>
+                            <?php elseif ($status === 'invalid'): ?>
+                                <span style="color: red; font-weight: bold;">Invalid</span>
+                            <?php else: ?>
+                                <span style="color: gray;">Not Set</span>
+                            <?php endif; ?>
+                            <?php if ($last_validated): ?>
+                                <p class="description">Last validated: <?php echo esc_html($last_validated); ?></p>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endif; ?>
                 <tr>
                     <th scope="row">Smooth Scrolling</th>
                     <td>
@@ -79,16 +88,16 @@ function supercraft_render_admin_page() {
                 </tr>
             </table>
 
-            <?php if ($status === 'valid'): ?>
+            <?php if (!$is_master_active && $status === 'valid'): ?>
                 <input type="hidden" name="supercraft_embed_code" value="<?php echo esc_attr($embed_code); ?>">
             <?php endif; ?>
             <input type="submit" name="submit" class="button button-primary" value="Save Settings" onclick="this.form.action.value='supercraft_save_settings'">
-            <?php if ($status !== 'valid'): ?>
+            <?php if (!$is_master_active && $status !== 'valid'): ?>
                 <?php submit_button('Save & Validate'); ?>
             <?php endif; ?>
         </form>
 
-        <?php if ($status === 'valid'): ?>
+        <?php if (!$is_master_active && $status === 'valid'): ?>
             <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" style="margin-top: 12px;">
                 <?php wp_nonce_field('supercraft_unlink'); ?>
                 <input type="hidden" name="action" value="supercraft_unlink">
@@ -98,6 +107,7 @@ function supercraft_render_admin_page() {
     </div>
     <?php
 }
+
 
 function supercraft_admin_menu() {
     global $menu;
