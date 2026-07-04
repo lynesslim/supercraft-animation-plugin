@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Superanimate GSAP Elementor
  * Description: GSAP-based animation presets with Elementor controls.
- * Version: 0.3.3
+ * Version: 0.3.4
  * Author: Supercraft
  */
 
@@ -26,10 +26,3 @@ $supercraftUpdateChecker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::build
 );
 $supercraftUpdateChecker->setBranch('main');
 
-if (!supercraft_is_validated()) {
-    remove_action('wp_enqueue_scripts', 'supercraft_anim_enqueue_assets');
-    remove_action('elementor/frontend/after_enqueue_scripts', 'supercraft_anim_enqueue_assets');
-    remove_action('elementor/preview/enqueue_scripts', 'supercraft_anim_enqueue_assets');
-    remove_action('elementor/frontend/widget/before_render', 'supercraft_apply_attrs', 1);
-    remove_action('elementor/frontend/container/before_render', 'supercraft_apply_attrs', 1);
-}

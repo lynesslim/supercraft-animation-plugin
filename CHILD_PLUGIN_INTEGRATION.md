@@ -93,6 +93,63 @@ function yourplugin_render_admin_page() {
 
 ---
 
+### Step 3: Delay Menu Registration Hook (Priority 20)
+To ensure the child plugin is added as a sub-page under the Master Plugin dashboard (rather than creating a duplicate top-level parent menu), you must change the menu action hook's priority to **`20`**.
+
+This delays registration until after the Master Plugin has initialized the parent `"supercraft-dashboard"` menu item.
+
+```php
+// Delay registration to priority 20 so it runs AFTER the Master Plugin
+add_action('admin_menu', 'yourplugin_admin_menu', 20);
+
+function yourplugin_admin_menu() {
+    global $menu;
+
+    // Search the global WordPress menu to find the Master parent slug dynamically
+    $supercraft_parent_slug = '';
+    foreach ($menu as $item) {
+        if (isset($item[0]) && strpos($item[0], 'Supercraft') !== false) {
+            $supercraft_parent_slug = isset($item[2]) ? $item[2] : '';
+            break;
+        }
+    }
+
+    if ($supercraft_parent_slug) {
+        // Master Plugin is active: add this child plugin as a sub-page
+        add_submenu_page(
+            $supercraft_parent_slug,
+            'Your Plugin Title',
+            'Your Submenu Title',
+            'manage_options',
+            'your-plugin-settings-slug',
+            'yourplugin_render_admin_page'
+        );
+    } else {
+        // Standalone Mode: Create its own top-level parent and submenu page
+        add_menu_page(
+            'Your Plugin Title',
+            'Supercraft', // parent folder name
+            'manage_options',
+            'your-plugin-settings-slug',
+            'yourplugin_render_admin_page',
+            'dashicons-admin-generic',
+            80
+        );
+        add_submenu_page(
+            'your-plugin-settings-slug',
+            'Your Plugin Title',
+            'Your Submenu Title',
+            'manage_options',
+            'your-plugin-settings-slug',
+            'yourplugin_render_admin_page'
+        );
+    }
+}
+```
+
+---
+
+
 ## 3. How to Build License Validation from Scratch (If your plugin doesn't have it)
 
 If your plugin does not have validation/licensing set up yet, follow this complete workflow to implement standalone validation with the Master Plugin fallback capability.
