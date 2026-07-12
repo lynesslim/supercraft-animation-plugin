@@ -1078,12 +1078,24 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
 
     if (bgImage) return bgImage;
 
-    // 2. Isolate inline backgrounds set on the container itself
-    const inlineBg = styles.backgroundImage;
+    // 2. Isolate inline or stylesheet backgrounds set on the container itself or its ::before pseudo-element
+    let inlineBg = styles.backgroundImage;
+    let usingPseudo = false;
+    let targetStyles = styles;
+
+    if (!inlineBg || inlineBg === 'none' || inlineBg.includes('gradient')) {
+      const beforeStyles = getComputedStyle(container, '::before');
+      if (beforeStyles && beforeStyles.backgroundImage && beforeStyles.backgroundImage !== 'none' && !beforeStyles.backgroundImage.includes('gradient')) {
+        inlineBg = beforeStyles.backgroundImage;
+        targetStyles = beforeStyles;
+        usingPseudo = true;
+      }
+    }
+
     if (inlineBg && inlineBg !== 'none' && !inlineBg.includes('gradient')) {
-      const bgPos = styles.backgroundPosition || 'center center';
-      const bgSize = styles.backgroundSize || 'cover';
-      const bgRepeat = styles.backgroundRepeat || 'no-repeat';
+      const bgPos = targetStyles.backgroundPosition || 'center center';
+      const bgSize = targetStyles.backgroundSize || 'cover';
+      const bgRepeat = targetStyles.backgroundRepeat || 'no-repeat';
 
       const bgLayer = document.createElement('div');
       bgLayer.className = 'supercraft-dynamic-bg-layer';
@@ -1108,6 +1120,7 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
 
       // Ensure container contents remain in front of the new background layer
       Array.from(container.children).forEach((child) => {
+        if (child === bgLayer) return;
         const childStyles = getComputedStyle(child);
         if (childStyles.position === 'static') {
           child.style.position = 'relative';
@@ -1118,7 +1131,11 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
       });
 
       container.prepend(bgLayer);
-      container.style.backgroundImage = 'none'; // Prevent double rendering
+      if (usingPseudo) {
+        container.classList.add('supercraft-hide-pseudo-bg');
+      } else {
+        container.style.backgroundImage = 'none'; // Prevent double rendering
+      }
       return bgLayer;
     }
 
