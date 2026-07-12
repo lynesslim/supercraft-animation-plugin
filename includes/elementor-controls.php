@@ -1457,6 +1457,7 @@ $supercraft_controls_callback = function ($element, $section_id) {
         'skew-press' => __('Skew Press', 'supercraft-anim'),
         'magnetic-pull' => __('Magnetic Pull', 'supercraft-anim'),
         'cinematic-zoom' => __('Cinematic Zoom', 'supercraft-anim'),
+        'zoom-bg' => __('Zoom Background (Clips Overflow)', 'supercraft-anim'),
         'custom-transform' => __('Custom Transform', 'supercraft-anim'),
     ];
     $named_element_options = ['' => __('Select Named Element', 'supercraft-anim')] + supercraft_named_element_options();

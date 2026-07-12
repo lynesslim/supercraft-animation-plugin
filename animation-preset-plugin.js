@@ -2001,6 +2001,8 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
       case 'cinematic-zoom':
         // Override the duration to be very slow and cinematic
         return { ...base, duration: Math.max(duration, 1.2), ease: "power1.out", to: { scale: 1 + 0.05 * intensity } };
+      case 'zoom-bg':
+        return { ...base, to: { scale: 1 + 0.1 * intensity } };
       case 'glow': // legacy fallback
         return { ...base, to: { filter: `drop-shadow(0px 0px 15px rgba(255, 255, 255, ${0.5 * intensity}))` } };
       case 'wiggle': // legacy fallback
@@ -2176,10 +2178,28 @@ const activeIdleTimelines = new Map();
         };
 
         const applyHover = () => {
-          targetEls.forEach((el) => {
-            el.style.transition = 'none';
-            el.style.willChange = 'transform, opacity, filter';
-          });
+          let hoverTargetEls = targetEls;
+          if (effect === 'zoom-bg') {
+            hoverTargetEls = targetEls.map((el) => {
+              el.style.overflow = 'hidden';
+              if (getComputedStyle(el).position === 'static') {
+                el.style.position = 'relative';
+              }
+              const styles = getComputedStyle(el);
+              const bg = getOrCreateBgImage(el, styles);
+              if (bg) {
+                bg.style.transition = 'none';
+                bg.style.willChange = 'transform';
+                return bg;
+              }
+              return el;
+            });
+          } else {
+            targetEls.forEach((el) => {
+              el.style.transition = 'none';
+              el.style.willChange = 'transform, opacity, filter';
+            });
+          }
 
           const transforms = getHoverVars(effect, {
             duration,
@@ -2210,7 +2230,7 @@ const activeIdleTimelines = new Map();
               return;
             }
             const tl = gsap.timeline();
-            targetEls.forEach((el) => {
+            hoverTargetEls.forEach((el) => {
               if (transforms.from && Object.keys(transforms.from).length > 0) {
                 tl.fromTo(el, transforms.from, {
                   ...transforms.to,
@@ -2236,7 +2256,7 @@ const activeIdleTimelines = new Map();
             } else if (!tl) {
               // Create reverse animation on first leave if no enter animation yet
               const reverseTl = gsap.timeline();
-              targetEls.forEach((el) => {
+              hoverTargetEls.forEach((el) => {
                 reverseTl.to(el, {
                   ...transforms.from,
                   duration: transforms.duration / speed,
