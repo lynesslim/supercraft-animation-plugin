@@ -2195,12 +2195,32 @@ const activeIdleTimelines = new Map();
         };
 
         const applyHover = () => {
+          // Disable transitions on the containers/targets themselves to prevent CSS hover transitions from interfering
+          targetEls.forEach((el) => {
+            el.style.transition = 'none';
+          });
+
           let hoverTargetEls = targetEls;
           if (effect === 'zoom-bg') {
             hoverTargetEls = targetEls.map((el) => {
-              // Already processed — re-use existing layer
-              const existingLayer = el.querySelector('.supercraft-zoom-bg-layer');
-              if (existingLayer) return existingLayer;
+              // 1. Try to find existing dedicated background/overlay/slideshow/image elements
+              const existingBg = el.querySelector(
+                '.elementor-background-overlay, .elementor-background-slideshow__image, .elementor-background-slideshow, .elementor-background-image, .supercraft-dynamic-bg-layer, .supercraft-zoom-bg-layer'
+              );
+              if (existingBg) {
+                el.style.overflow = 'hidden';
+                if (getComputedStyle(el).position === 'static') {
+                  el.style.position = 'relative';
+                }
+                existingBg.style.transition = 'none';
+                existingBg.style.willChange = 'transform';
+                
+                // Ensure triggerEls includes the container so hover events fire properly
+                if (!triggerEls.includes(el)) {
+                  triggerEls.push(el);
+                }
+                return existingBg;
+              }
 
               // Walk from el upward to find the actual element carrying the background image.
               // Elementor can set it on the container itself or a parent wrapper.
@@ -2215,7 +2235,7 @@ const activeIdleTimelines = new Map();
               for (let i = 0; i < maxWalk && checkedEl; i++) {
                 const s = getComputedStyle(checkedEl);
                 const img = s.backgroundImage;
-                if (img && img !== 'none') {
+                if (img && img !== 'none' && !img.includes('gradient')) {
                   bgSource = checkedEl;
                   bgImage = img;
                   bgPos = s.backgroundPosition || bgPos;
@@ -2226,6 +2246,7 @@ const activeIdleTimelines = new Map();
                 // Also check ::before (Elementor overlay pattern)
                 const beforeS = getComputedStyle(checkedEl, '::before');
                 if (beforeS && beforeS.backgroundImage && beforeS.backgroundImage !== 'none'
+                    && !beforeS.backgroundImage.includes('gradient')
                     && beforeS.content && beforeS.content !== 'none') {
                   bgSource = checkedEl;
                   bgImage = beforeS.backgroundImage;
@@ -2242,6 +2263,7 @@ const activeIdleTimelines = new Map();
 
               if (!bgImage || bgImage === 'none') {
                 // No background image found — fall back to scaling the element itself
+                el.style.willChange = 'transform, opacity, filter';
                 return el;
               }
 
@@ -2296,7 +2318,6 @@ const activeIdleTimelines = new Map();
             });
           } else {
             targetEls.forEach((el) => {
-              el.style.transition = 'none';
               el.style.willChange = 'transform, opacity, filter';
             });
           }
