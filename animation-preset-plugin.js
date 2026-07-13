@@ -2263,9 +2263,8 @@ const activeIdleTimelines = new Map();
               const container = bgSource || el;
 
               if (!bgImage || bgImage === 'none') {
-                // No background image found — fall back to scaling the element itself
-                el.style.willChange = 'transform, opacity, filter';
-                return el;
+                // No background image found — do not scale or animate this element
+                return null;
               }
 
               // Create the animatable background layer
@@ -2319,7 +2318,7 @@ const activeIdleTimelines = new Map();
               }
 
               return layer;
-            });
+            }).filter(Boolean);
           } else {
             targetEls.forEach((el) => {
               el.style.willChange = 'transform, opacity, filter';
