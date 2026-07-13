@@ -2198,18 +2198,101 @@ const activeIdleTimelines = new Map();
           let hoverTargetEls = targetEls;
           if (effect === 'zoom-bg') {
             hoverTargetEls = targetEls.map((el) => {
-              el.style.overflow = 'hidden';
-              if (getComputedStyle(el).position === 'static') {
-                el.style.position = 'relative';
+              // Already processed — re-use existing layer
+              const existingLayer = el.querySelector('.supercraft-zoom-bg-layer');
+              if (existingLayer) return existingLayer;
+
+              // Walk from el upward to find the actual element carrying the background image.
+              // Elementor can set it on the container itself or a parent wrapper.
+              let bgSource = null;
+              let bgImage = '';
+              let bgPos = 'center center';
+              let bgSize = 'cover';
+              let bgRepeat = 'no-repeat';
+              let checkedEl = el;
+              const maxWalk = 3; // don't walk too far
+
+              for (let i = 0; i < maxWalk && checkedEl; i++) {
+                const s = getComputedStyle(checkedEl);
+                const img = s.backgroundImage;
+                if (img && img !== 'none') {
+                  bgSource = checkedEl;
+                  bgImage = img;
+                  bgPos = s.backgroundPosition || bgPos;
+                  bgSize = s.backgroundSize || bgSize;
+                  bgRepeat = s.backgroundRepeat || bgRepeat;
+                  break;
+                }
+                // Also check ::before (Elementor overlay pattern)
+                const beforeS = getComputedStyle(checkedEl, '::before');
+                if (beforeS && beforeS.backgroundImage && beforeS.backgroundImage !== 'none'
+                    && beforeS.content && beforeS.content !== 'none') {
+                  bgSource = checkedEl;
+                  bgImage = beforeS.backgroundImage;
+                  bgPos = beforeS.backgroundPosition || bgPos;
+                  bgSize = beforeS.backgroundSize || bgSize;
+                  bgRepeat = beforeS.backgroundRepeat || bgRepeat;
+                  break;
+                }
+                checkedEl = checkedEl.parentElement;
               }
-              const styles = getComputedStyle(el);
-              const bg = getOrCreateBgImage(el, styles);
-              if (bg) {
-                bg.style.transition = 'none';
-                bg.style.willChange = 'transform';
-                return bg;
+
+              // The container we'll clip overflow on is the element with the background
+              const container = bgSource || el;
+
+              if (!bgImage || bgImage === 'none') {
+                // No background image found — fall back to scaling the element itself
+                return el;
               }
-              return el;
+
+              // Create the animatable background layer
+              const layer = document.createElement('div');
+              layer.className = 'supercraft-zoom-bg-layer';
+              Object.assign(layer.style, {
+                position: 'absolute',
+                top: '0',
+                left: '0',
+                width: '100%',
+                height: '100%',
+                backgroundImage: bgImage,
+                backgroundPosition: bgPos,
+                backgroundSize: bgSize,
+                backgroundRepeat: bgRepeat,
+                zIndex: '0',
+                pointerEvents: 'none',
+                willChange: 'transform',
+                transition: 'none',
+              });
+
+              // Prepare the container
+              container.style.overflow = 'hidden';
+              if (getComputedStyle(container).position === 'static') {
+                container.style.position = 'relative';
+              }
+
+              // Hide the original background so we don't double-render
+              if (bgSource === container) {
+                container.style.backgroundImage = 'none';
+              }
+              // Also hide ::before background if it was the source
+              container.classList.add('supercraft-hide-pseudo-bg');
+
+              // Elevate existing children above the new layer
+              Array.from(container.children).forEach((child) => {
+                if (child === layer) return;
+                const cs = getComputedStyle(child);
+                if (cs.position === 'static') child.style.position = 'relative';
+                if (!cs.zIndex || cs.zIndex === 'auto') child.style.zIndex = '1';
+              });
+
+              container.prepend(layer);
+
+              // Ensure triggerEls includes the container so hover events fire properly
+              if (!triggerEls.includes(container) && !triggerEls.includes(el)) {
+                triggerEls.push(container);
+              }
+
+              return layer;
             });
           } else {
             targetEls.forEach((el) => {

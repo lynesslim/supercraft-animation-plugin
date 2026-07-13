@@ -732,8 +732,12 @@ body.elementor-editor-active .text-reveal:not([data-supercraft-preview-play="yes
   transform: translateY(var(--char-offset-y, 115px));
 }
 
-/* Hide original pseudo-element background when isolated for animation */
+/* Hide original pseudo-element background when isolated for zoom-bg animation */
 .supercraft-hide-pseudo-bg::before {
   background-image: none !important;
-  content: none !important;
+}
+
+/* Zoom background hover layer base styles */
+.supercraft-zoom-bg-layer {
+  transform-origin: center center;
 }
