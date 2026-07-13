@@ -741,3 +741,12 @@ body.elementor-editor-active .text-reveal:not([data-supercraft-preview-play="yes
 .supercraft-zoom-bg-layer {
   transform-origin: center center;
 }
+
+/* Lock the container so Elementor's own CSS hover transitions can't scale it */
+.supercraft-zoom-bg-active {
+  transition: none !important;
+}
+.supercraft-zoom-bg-active:hover {
+  transform: none !important;
+  transition: none !important;
+}

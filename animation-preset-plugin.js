@@ -2214,6 +2214,7 @@ const activeIdleTimelines = new Map();
                 }
                 existingBg.style.transition = 'none';
                 existingBg.style.willChange = 'transform';
+                el.classList.add('supercraft-zoom-bg-active');
                 
                 // Ensure triggerEls includes the container so hover events fire properly
                 if (!triggerEls.includes(el)) {
@@ -2298,6 +2299,9 @@ const activeIdleTimelines = new Map();
               }
               // Also hide ::before background if it was the source
               container.classList.add('supercraft-hide-pseudo-bg');
+              // Lock the container so Elementor CSS hover transitions can't scale it
+              container.classList.add('supercraft-zoom-bg-active');
+              el.classList.add('supercraft-zoom-bg-active');
 
               // Elevate existing children above the new layer
               Array.from(container.children).forEach((child) => {
