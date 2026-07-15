@@ -1866,6 +1866,75 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
       return { layer: layer, slats: slats };
     }
 
+    function buildSVGOverlay(section, fill) {
+      section.style.position = 'relative';
+      section.style.overflow = 'hidden';
+      section.style.isolation = 'isolate';
+
+      var layer = document.createElement('div');
+      Object.assign(layer.style, {
+        position: 'absolute',
+        left: '0',
+        right: '0',
+        bottom: '0',
+        top: 'auto',
+        height: '100%',
+        zIndex: '9999',
+        pointerEvents: 'none',
+        overflow: 'hidden',
+      });
+      layer.setAttribute('aria-hidden', 'true');
+      layer.setAttribute('data-st-layer', 'true');
+
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 100 100');
+      svg.setAttribute('preserveAspectRatio', 'none');
+      Object.assign(svg.style, {
+        width: '100%',
+        height: '100%',
+        display: 'block',
+      });
+
+      var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('fill', fill);
+      path.setAttribute('d', 'M 0 100 L 100 100 L 100 100 L 0 100 Z');
+
+      svg.appendChild(path);
+      layer.appendChild(svg);
+      section.appendChild(layer);
+
+      return { layer: layer, path: path };
+    }
+
+    function buildFadeBlurOverlay(section, fill) {
+      section.style.position = 'relative';
+      section.style.overflow = 'hidden';
+      section.style.isolation = 'isolate';
+
+      var layer = document.createElement('div');
+      Object.assign(layer.style, {
+        position: 'absolute',
+        left: '0',
+        right: '0',
+        bottom: '0',
+        top: '0',
+        height: '100%',
+        width: '100%',
+        zIndex: '9999',
+        pointerEvents: 'none',
+        background: fill,
+        webkitBackdropFilter: 'blur(20px)',
+        backdropFilter: 'blur(20px)',
+        webkitMaskImage: 'linear-gradient(to top, black calc(var(--mask-solid, -20) * 1%), transparent calc(var(--mask-fade, 0) * 1%))',
+        maskImage: 'linear-gradient(to top, black calc(var(--mask-solid, -20) * 1%), transparent calc(var(--mask-fade, 0) * 1%))',
+      });
+      layer.setAttribute('aria-hidden', 'true');
+      layer.setAttribute('data-st-layer', 'true');
+
+      section.appendChild(layer);
+      return layer;
+    }
+
     const sections = document.querySelectorAll('.supercraft-section-transition');
 
     sections.forEach(function (section) {
@@ -1908,6 +1977,123 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
           scaleY: 1,
           duration: 0.03,
           stagger: { each: 0.001, from: 'end' },
+        }, 0);
+      } else if (preset === 'liquid-curtain') {
+        const next = findNextContainer(section);
+        if (!next) {
+          section.dataset.stInit = 'true';
+          return;
+        }
+
+        const fill = resolveFill(next, fallback);
+        const result = buildSVGOverlay(section, fill);
+        const layer = result.layer;
+        const path = result.path;
+
+        const curveState = {
+          yLeft: 100,
+          yControl: 100,
+          yRight: 100
+        };
+
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: section,
+            start: scrollStart,
+            end: function () {
+              return '+=' + Math.max(layer.offsetHeight, 1);
+            },
+            scrub: scrub,
+            invalidateOnRefresh: true,
+          },
+          onUpdate: function () {
+            path.setAttribute('d', `M 0 ${curveState.yLeft} Q 50 ${curveState.yControl} 100 ${curveState.yRight} L 100 100 L 0 100 Z`);
+          }
+        });
+
+        tl.to(curveState, {
+          yLeft: 0,
+          yRight: 0,
+          duration: 0.8,
+          ease: 'power2.inOut'
+        }, 0);
+
+        tl.to(curveState, {
+          yControl: 0,
+          duration: 1.0,
+          ease: 'power1.out'
+        }, 0);
+      } else if (preset === 'diagonal-wipe') {
+        const next = findNextContainer(section);
+        if (!next) {
+          section.dataset.stInit = 'true';
+          return;
+        }
+
+        const fill = resolveFill(next, fallback);
+        const result = buildSVGOverlay(section, fill);
+        const layer = result.layer;
+        const path = result.path;
+
+        const wipeState = {
+          yLeft: 100,
+          yRight: 100
+        };
+
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: section,
+            start: scrollStart,
+            end: function () {
+              return '+=' + Math.max(layer.offsetHeight, 1);
+            },
+            scrub: scrub,
+            invalidateOnRefresh: true,
+          },
+          onUpdate: function () {
+            path.setAttribute('d', `M 0 ${wipeState.yLeft} L 100 ${wipeState.yRight} L 100 100 L 0 100 Z`);
+          }
+        });
+
+        tl.to(wipeState, {
+          yLeft: 0,
+          duration: 0.7,
+          ease: 'power1.inOut'
+        }, 0);
+
+        tl.to(wipeState, {
+          yRight: 0,
+          duration: 0.7,
+          ease: 'power1.inOut'
+        }, 0.3);
+      } else if (preset === 'fade-blur') {
+        const next = findNextContainer(section);
+        if (!next) {
+          section.dataset.stInit = 'true';
+          return;
+        }
+
+        const fill = resolveFill(next, fallback);
+        const layer = buildFadeBlurOverlay(section, fill);
+
+        gsap.timeline({
+          scrollTrigger: {
+            trigger: section,
+            start: scrollStart,
+            end: function () {
+              return '+=' + Math.max(layer.offsetHeight, 1);
+            },
+            scrub: scrub,
+            invalidateOnRefresh: true,
+          },
+        }).fromTo(layer, {
+          '--mask-solid': -20,
+          '--mask-fade': 0
+        }, {
+          '--mask-solid': 100,
+          '--mask-fade': 120,
+          duration: 1.0,
+          ease: 'none'
         }, 0);
       }
 
@@ -2018,8 +2204,7 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
       case 'cinematic-zoom':
         // Override the duration to be very slow and cinematic
         return { ...base, duration: Math.max(duration, 1.2), ease: "power1.out", to: { scale: 1 + 0.05 * intensity } };
-      case 'zoom-bg':
-        return { ...base, to: { scale: 1 + 0.1 * intensity } };
+
       case 'glow': // legacy fallback
         return { ...base, to: { filter: `drop-shadow(0px 0px 15px rgba(255, 255, 255, ${0.5 * intensity}))` } };
       case 'wiggle': // legacy fallback
@@ -2195,135 +2380,35 @@ const activeIdleTimelines = new Map();
         };
 
         const applyHover = () => {
+          if (effect === 'zoom-bg') {
+            targetEls.forEach((el) => {
+              el.classList.add('supercraft-zoom-bg');
+            });
+
+            // Set up hover triggers to toggle class
+            const handleMouseEnter = () => {
+              targetEls.forEach((el) => el.classList.add('supercraft-zoom-bg-hovered'));
+            };
+            const handleMouseLeave = () => {
+              targetEls.forEach((el) => el.classList.remove('supercraft-zoom-bg-hovered'));
+            };
+
+            triggerEls.forEach((el) => {
+              el.addEventListener('mouseenter', handleMouseEnter);
+              el.addEventListener('mouseleave', handleMouseLeave);
+            });
+            return;
+          }
+
           // Disable transitions on the containers/targets themselves to prevent CSS hover transitions from interfering
           targetEls.forEach((el) => {
             el.style.transition = 'none';
           });
 
           let hoverTargetEls = targetEls;
-          if (effect === 'zoom-bg') {
-            hoverTargetEls = targetEls.map((el) => {
-              // 1. Try to find existing dedicated background/overlay/slideshow/image elements
-              const existingBg = el.querySelector(
-                '.elementor-background-overlay, .elementor-background-slideshow__image, .elementor-background-slideshow, .elementor-background-image, .supercraft-dynamic-bg-layer, .supercraft-zoom-bg-layer'
-              );
-              if (existingBg) {
-                el.style.overflow = 'hidden';
-                if (getComputedStyle(el).position === 'static') {
-                  el.style.position = 'relative';
-                }
-                existingBg.style.transition = 'none';
-                existingBg.style.willChange = 'transform';
-                el.classList.add('supercraft-zoom-bg-active');
-                
-                // Ensure triggerEls includes the container so hover events fire properly
-                if (!triggerEls.includes(el)) {
-                  triggerEls.push(el);
-                }
-                return existingBg;
-              }
-
-              // Walk from el upward to find the actual element carrying the background image.
-              // Elementor can set it on the container itself or a parent wrapper.
-              let bgSource = null;
-              let bgImage = '';
-              let bgPos = 'center center';
-              let bgSize = 'cover';
-              let bgRepeat = 'no-repeat';
-              let checkedEl = el;
-              const maxWalk = 3; // don't walk too far
-
-              for (let i = 0; i < maxWalk && checkedEl; i++) {
-                const s = getComputedStyle(checkedEl);
-                const img = s.backgroundImage;
-                if (img && img !== 'none' && !img.includes('gradient')) {
-                  bgSource = checkedEl;
-                  bgImage = img;
-                  bgPos = s.backgroundPosition || bgPos;
-                  bgSize = s.backgroundSize || bgSize;
-                  bgRepeat = s.backgroundRepeat || bgRepeat;
-                  break;
-                }
-                // Also check ::before (Elementor overlay pattern)
-                const beforeS = getComputedStyle(checkedEl, '::before');
-                if (beforeS && beforeS.backgroundImage && beforeS.backgroundImage !== 'none'
-                    && !beforeS.backgroundImage.includes('gradient')
-                    && beforeS.content && beforeS.content !== 'none') {
-                  bgSource = checkedEl;
-                  bgImage = beforeS.backgroundImage;
-                  bgPos = beforeS.backgroundPosition || bgPos;
-                  bgSize = beforeS.backgroundSize || bgSize;
-                  bgRepeat = beforeS.backgroundRepeat || bgRepeat;
-                  break;
-                }
-                checkedEl = checkedEl.parentElement;
-              }
-
-              // The container we'll clip overflow on is the element with the background
-              const container = bgSource || el;
-
-              if (!bgImage || bgImage === 'none') {
-                // No background image found — do not scale or animate this element
-                return null;
-              }
-
-              // Create the animatable background layer
-              const layer = document.createElement('div');
-              layer.className = 'supercraft-zoom-bg-layer';
-              Object.assign(layer.style, {
-                position: 'absolute',
-                top: '0',
-                left: '0',
-                width: '100%',
-                height: '100%',
-                backgroundImage: bgImage,
-                backgroundPosition: (bgPos === '0% 0%' || bgPos === '0px 0px') ? 'center center' : bgPos,
-                backgroundSize: (bgSize === 'auto' || bgSize === 'initial') ? 'cover' : bgSize,
-                backgroundRepeat: 'no-repeat',
-                zIndex: '0',
-                pointerEvents: 'none',
-                willChange: 'transform',
-                transition: 'none',
-              });
-
-              // Prepare the container
-              container.style.overflow = 'hidden';
-              if (getComputedStyle(container).position === 'static') {
-                container.style.position = 'relative';
-              }
-
-              // Hide the original background so we don't double-render
-              if (bgSource === container) {
-                container.style.backgroundImage = 'none';
-              }
-              // Also hide ::before background if it was the source
-              container.classList.add('supercraft-hide-pseudo-bg');
-              // Lock the container so Elementor CSS hover transitions can't scale it
-              container.classList.add('supercraft-zoom-bg-active');
-              el.classList.add('supercraft-zoom-bg-active');
-
-              // Elevate existing children above the new layer
-              Array.from(container.children).forEach((child) => {
-                if (child === layer) return;
-                const cs = getComputedStyle(child);
-                if (cs.position === 'static') child.style.position = 'relative';
-                if (!cs.zIndex || cs.zIndex === 'auto') child.style.zIndex = '1';
-              });
-
-              container.prepend(layer);
-
-              // Ensure triggerEls includes the container so hover events fire properly
-              if (!triggerEls.includes(container) && !triggerEls.includes(el)) {
-                triggerEls.push(container);
-              }
-
-              return layer;
-            }).filter(Boolean);
-          } else {
-            targetEls.forEach((el) => {
-              el.style.willChange = 'transform, opacity, filter';
-            });
-          }
+          targetEls.forEach((el) => {
+            el.style.willChange = 'transform, opacity, filter';
+          });
 
           const transforms = getHoverVars(effect, {
             duration,

@@ -163,6 +163,9 @@ $supercraft_controls_callback = function ($element, $section_id) {
             'default' => 'vertical-shutter',
             'options' => [
                 'vertical-shutter' => __('Vertical Shutter', 'supercraft-anim'),
+                'liquid-curtain' => __('Liquid Curtain (Elegant)', 'supercraft-anim'),
+                'diagonal-wipe' => __('Diagonal Wipe (Modern)', 'supercraft-anim'),
+                'fade-blur' => __('Fade & Blur (Premium)', 'supercraft-anim'),
             ],
             'frontend_available' => false,
             'condition' => [
