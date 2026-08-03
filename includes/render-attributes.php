@@ -364,6 +364,17 @@ function supercraft_apply_attrs($element) {
                 $dir = $settings['supercraft_container_direction'] ?? 'center';
             }
             $classes[] = 'container-reveal-' . $dir;
+            if ($dir === 'block-curtain') {
+                if (!empty($settings['supercraft_container_block_color'])) {
+                    $styles[] = '--cr-block-color:' . supercraft_get_elementor_global_color_var($settings['supercraft_container_block_color']);
+                }
+                if (!empty($settings['supercraft_container_block_count'])) {
+                    $data_attrs['data-container-block-count'] = esc_attr($settings['supercraft_container_block_count']);
+                }
+                if (!empty($settings['supercraft_container_block_direction'])) {
+                    $data_attrs['data-container-block-direction'] = esc_attr($settings['supercraft_container_block_direction']);
+                }
+            }
             if ($settings['supercraft_container_duration'] !== '' && $settings['supercraft_container_duration'] !== null) {
                 $styles[] = '--reveal-duration:' . esc_attr($settings['supercraft_container_duration']) . 's';
             }

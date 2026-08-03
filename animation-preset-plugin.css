@@ -669,6 +669,30 @@ body:not(.elementor-editor-active) .container-reveal-scroll {
 .container-reveal-bottom { --reveal-direction: bottom; }
 .container-reveal-center { --reveal-direction: center; }
 .container-reveal-cinematic-gate { --reveal-direction: cinematic-gate; }
+.container-reveal-block-curtain { --reveal-direction: block-curtain; }
+
+/* Injected Staggered Color Block Curtain Overlay */
+.cr-block-curtain-wrapper {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 10 !important;
+  display: flex !important;
+  pointer-events: none !important;
+}
+
+.cr-block-curtain-item {
+  flex: 1 !important;
+  height: 100% !important;
+  background-color: var(--cr-block-color, #ff3b26) !important;
+  will-change: transform !important;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
 
 /* ===================================
    Text Reveal

@@ -892,12 +892,63 @@ $supercraft_controls_callback = function ($element, $section_id) {
                 'top' => __('Top', 'supercraft-anim'),
                 'bottom' => __('Bottom', 'supercraft-anim'),
                 'cinematic-gate' => __('Cinematic Gate', 'supercraft-anim'),
+                'block-curtain' => __('Staggered Color Blocks', 'supercraft-anim'),
                 'custom' => __('Custom', 'supercraft-anim'),
             ],
             'default' => 'center',
             'frontend_available' => false,
             'condition' => [
                 'supercraft_anim_category' => 'container-reveal',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_container_block_color',
+        [
+            'label' => __('Block Overlay Color', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::COLOR,
+            'default' => '#ff3b26',
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'container-reveal',
+                'supercraft_container_preset' => 'block-curtain',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_container_block_count',
+        [
+            'label' => __('Number of Blocks', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::NUMBER,
+            'min' => 2,
+            'max' => 12,
+            'default' => 5,
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'container-reveal',
+                'supercraft_container_preset' => 'block-curtain',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_container_block_direction',
+        [
+            'label' => __('Wipe Direction', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::SELECT,
+            'options' => [
+                'up' => __('Slide / Scale Up', 'supercraft-anim'),
+                'down' => __('Slide / Scale Down', 'supercraft-anim'),
+                'left' => __('Scale Left', 'supercraft-anim'),
+                'right' => __('Scale Right', 'supercraft-anim'),
+            ],
+            'default' => 'up',
+            'frontend_available' => false,
+            'condition' => [
+                'supercraft_anim_category' => 'container-reveal',
+                'supercraft_container_preset' => 'block-curtain',
             ],
         ]
     );

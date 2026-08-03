@@ -1278,6 +1278,102 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
       else if (container.classList.contains('container-reveal-left')) direction = 'left';
       else if (container.classList.contains('container-reveal-center')) direction = 'center';
       else if (container.classList.contains('container-reveal-cinematic-gate')) direction = 'cinematic-gate';
+      else if (container.classList.contains('container-reveal-block-curtain')) direction = 'block-curtain';
+
+      const isScrollScrub = container.classList.contains('container-reveal-scroll');
+      const scrollStart = styles.getPropertyValue('--reveal-scroll-start')?.trim() ||
+                          container.dataset.revealScrollStart || 'top 85%';
+      const scrollEnd = styles.getPropertyValue('--reveal-scroll-end')?.trim() ||
+                        container.dataset.revealScrollEnd || 'top 20%';
+      const forwardOnly = (container.dataset.revealForwardOnly || '').trim().toLowerCase() === 'true';
+
+      if (direction === 'block-curtain') {
+        let wrapper = container.querySelector('.cr-block-curtain-wrapper');
+        if (!wrapper) {
+          wrapper = document.createElement('div');
+          wrapper.className = 'cr-block-curtain-wrapper';
+          container.appendChild(wrapper);
+        }
+
+        const countAttr = parseInt(container.dataset.containerBlockCount, 10);
+        const count = (!Number.isNaN(countAttr) && countAttr > 0) ? countAttr : 5;
+
+        if (wrapper.children.length !== count) {
+          wrapper.innerHTML = '';
+          for (let i = 0; i < count; i++) {
+            const item = document.createElement('div');
+            item.className = 'cr-block-curtain-item';
+            wrapper.appendChild(item);
+          }
+        }
+
+        const items = Array.from(wrapper.children);
+        const wipeDir = (container.dataset.containerBlockDirection || 'up').toLowerCase();
+
+        let transformProp = 'scaleY';
+        let transformOrigin = 'top';
+        if (wipeDir === 'down') {
+          transformProp = 'scaleY';
+          transformOrigin = 'bottom';
+        } else if (wipeDir === 'left') {
+          transformProp = 'scaleX';
+          transformOrigin = 'left';
+        } else if (wipeDir === 'right') {
+          transformProp = 'scaleX';
+          transformOrigin = 'right';
+        }
+
+        gsap.set(items, { [transformProp]: 1, transformOrigin });
+        gsap.set(container, { autoAlpha: 1, visibility: 'visible', clipPath: 'none', webkitClipPath: 'none' });
+
+        if (isEditor) {
+          gsap.set(items, { [transformProp]: 0 });
+          container.dataset.containerRevealInit = 'true';
+          return;
+        }
+
+        if (isScrollScrub) {
+          const tl = gsap.timeline({
+            scrollTrigger: {
+              trigger: container,
+              start: scrollStart,
+              end: scrollEnd,
+              scrub: 0.5,
+              onUpdate: (self) => {
+                if (forwardOnly) {
+                  const max = Math.max(self.progress, self._maxProgress || 0);
+                  self._maxProgress = max;
+                  if (self.progress < max) {
+                    self.animation.progress(max);
+                  }
+                }
+              },
+            },
+          });
+          tl.to(items, {
+            [transformProp]: 0,
+            duration: duration,
+            stagger: 0.08,
+            ease: ease,
+          });
+        } else {
+          gsap.to(items, {
+            [transformProp]: 0,
+            duration: duration,
+            delay: delay,
+            stagger: 0.08,
+            ease: ease,
+            scrollTrigger: {
+              trigger: container,
+              start: startTrigger,
+              toggleActions: 'play none none none',
+            },
+          });
+        }
+
+        container.dataset.containerRevealInit = 'true';
+        return;
+      }
 
       const fullClip = direction === 'cinematic-gate' ? 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)' : 'inset(0% 0% 0% 0%)';
       let startClip;
@@ -1313,12 +1409,7 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
         return;
       }
 
-      const isScrollScrub = container.classList.contains('container-reveal-scroll');
-      const scrollStart = styles.getPropertyValue('--reveal-scroll-start')?.trim() ||
-                          container.dataset.revealScrollStart || 'top 85%';
-      const scrollEnd = styles.getPropertyValue('--reveal-scroll-end')?.trim() ||
-                        container.dataset.revealScrollEnd || 'top 20%';
-      const forwardOnly = (container.dataset.revealForwardOnly || '').trim().toLowerCase() === 'true';
+
 
       // Ensure no interfering transitions and force initial masked state
       container.style.transition = 'none';
