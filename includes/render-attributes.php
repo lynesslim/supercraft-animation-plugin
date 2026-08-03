@@ -35,6 +35,9 @@ function supercraft_apply_attrs($element) {
             $isScrub = !empty($settings['supercraft_scroll_scrub']);
             $classes[] = $isScrub ? 'scroll-transform-scrub' : 'scroll-transform';
             $preset = $settings['supercraft_scroll_preset'] ?? 'fade-up';
+            if (in_array($preset, ['scroll-zoom-bg-in', 'scroll-zoom-bg-out'], true)) {
+                $classes[] = 'supercraft-scroll-zoom-bg';
+            }
             if ($preset && $preset !== 'custom') {
                 $classes[] = $preset;
                 $presetMap = [

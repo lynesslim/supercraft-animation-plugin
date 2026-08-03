@@ -89,6 +89,9 @@ function applyStartStateFromStyles(el) {
     'blur-zoom-in',
     'blur-zoom-out',
     'fade',
+    'scroll-zoom-bg-in',
+    'scroll-zoom-bg-out',
+    'supercraft-scroll-zoom-bg',
     'supercraft-section-transition',
     'text-reveal',
     'text-reveal-envelope'

@@ -263,8 +263,8 @@ body:not(.elementor-editor-active) .anim-fade-up {
 }
 
 /* Prevent initial flash before JS applies start states (live site only) */
-.scroll-transform,
-.scroll-transform-scrub,
+.scroll-transform:not(.supercraft-scroll-zoom-bg):not(.scroll-zoom-bg-in):not(.scroll-zoom-bg-out),
+.scroll-transform-scrub:not(.supercraft-scroll-zoom-bg):not(.scroll-zoom-bg-in):not(.scroll-zoom-bg-out),
 .image-reveal,
 .container-reveal {
   opacity: 0;
@@ -345,8 +345,8 @@ body:not(.elementor-editor-active) .blur-reveal {
    Works for any widget with class "scroll-transform"
    Control via CSS custom properties or data attributes
 =================================== */
-.scroll-transform,
-.scroll-transform-scrub {
+.scroll-transform:not(.supercraft-scroll-zoom-bg):not(.scroll-zoom-bg-in):not(.scroll-zoom-bg-out),
+.scroll-transform-scrub:not(.supercraft-scroll-zoom-bg):not(.scroll-zoom-bg-in):not(.scroll-zoom-bg-out) {
   /* Initial state - set these via CSS or data attributes */
   --transform-start-x: 0px;
   --transform-start-y: 0px;
@@ -734,27 +734,82 @@ body.elementor-editor-active .text-reveal:not([data-supercraft-preview-play="yes
 
 /* Hover Zoom Background Image Animation */
 .supercraft-zoom-bg {
-  position: relative;
-  overflow: hidden;
+  position: relative !important;
+  overflow: hidden !important;
 }
 
 .supercraft-zoom-bg::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: inherit;
-  background-size: cover;
-  background-position: center;
-  transition: transform 0.6s ease;
-  z-index: 0;
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background-image: inherit !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.6s ease !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
 }
 
 .supercraft-zoom-bg:hover::before,
 .supercraft-zoom-bg.supercraft-zoom-bg-hovered::before {
-  transform: scale(1.1);
+  transform: scale(1.1) !important;
 }
 
-.supercraft-zoom-bg > .e-con-inner {
-  position: relative;
-  z-index: 1;
+.supercraft-zoom-bg > .e-con-inner,
+.supercraft-zoom-bg > .elementor-container,
+.supercraft-zoom-bg > .elementor-widget-container,
+.supercraft-zoom-bg > .e-parent-content {
+  position: relative !important;
+  z-index: 1 !important;
 }
+
+/* Scroll Zoom Background Image Animation */
+.supercraft-scroll-zoom-bg,
+.scroll-zoom-bg-in,
+.scroll-zoom-bg-out {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Hide parent static background when active so only ::before renders it */
+.supercraft-scroll-zoom-bg[data-scroll-zoom-active],
+.scroll-zoom-bg-in[data-scroll-zoom-active],
+.scroll-zoom-bg-out[data-scroll-zoom-active] {
+  background-image: none !important;
+}
+
+.supercraft-scroll-zoom-bg::before,
+.scroll-zoom-bg-in::before,
+.scroll-zoom-bg-out::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  transform: scale(var(--supercraft-bg-scale, 1)) translateZ(0) !important;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  will-change: transform;
+}
+
+.supercraft-scroll-zoom-bg > .e-con-inner,
+.supercraft-scroll-zoom-bg > .elementor-container,
+.supercraft-scroll-zoom-bg > .elementor-widget-container,
+.supercraft-scroll-zoom-bg > .e-parent-content,
+.scroll-zoom-bg-in > .e-con-inner,
+.scroll-zoom-bg-in > .elementor-container,
+.scroll-zoom-bg-in > .elementor-widget-container,
+.scroll-zoom-bg-in > .e-parent-content,
+.scroll-zoom-bg-out > .e-con-inner,
+.scroll-zoom-bg-out > .elementor-container,
+.scroll-zoom-bg-out > .elementor-widget-container,
+.scroll-zoom-bg-out > .e-parent-content {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+

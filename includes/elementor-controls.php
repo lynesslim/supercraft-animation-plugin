@@ -276,6 +276,8 @@ $supercraft_controls_callback = function ($element, $section_id) {
         'blur-zoom-in' => __('Blur Zoom In', 'supercraft-anim'),
         'blur-zoom-out' => __('Blur Zoom Out', 'supercraft-anim'),
         'fade' => __('Fade Only', 'supercraft-anim'),
+        'scroll-zoom-bg-in' => __('Scroll Zoom Background (In)', 'supercraft-anim'),
+        'scroll-zoom-bg-out' => __('Scroll Zoom Background (Out)', 'supercraft-anim'),
     ];
 
     $element->add_control(
@@ -1460,7 +1462,9 @@ $supercraft_controls_callback = function ($element, $section_id) {
         'skew-press' => __('Skew Press', 'supercraft-anim'),
         'magnetic-pull' => __('Magnetic Pull', 'supercraft-anim'),
         'cinematic-zoom' => __('Cinematic Zoom', 'supercraft-anim'),
-        'zoom-bg' => __('Zoom Background (Clips Overflow)', 'supercraft-anim'),
+        'zoom-bg' => __('Zoom Background (Hover)', 'supercraft-anim'),
+        'scroll-zoom-bg-in' => __('Scroll Zoom Background (In)', 'supercraft-anim'),
+        'scroll-zoom-bg-out' => __('Scroll Zoom Background (Out)', 'supercraft-anim'),
         'custom-transform' => __('Custom Transform', 'supercraft-anim'),
     ];
     $named_element_options = ['' => __('Select Named Element', 'supercraft-anim')] + supercraft_named_element_options();

@@ -499,12 +499,96 @@ document.addEventListener('DOMContentLoaded', function () {
      SCROLL TRANSFORM ANIMATION
      Controlled via CSS custom properties or data attributes
      ========================================== */
+  /* Helper for Scroll Zoom Background (In/Out, Scrub or One-time Entrance) */
+  function setupScrollZoomBackground(el, isZoomOut = false, isScrub = false) {
+    if (!el || el.dataset.scrollZoomInit === 'true') return;
+    el.dataset.scrollZoomInit = 'true';
+    el.classList.add('supercraft-scroll-zoom-bg');
+
+    // Extract background image from element or child container
+    let bgImg = window.getComputedStyle(el).backgroundImage;
+    if (!bgImg || bgImg === 'none') {
+      const inner = el.querySelector('.e-con-inner, .elementor-background-overlay');
+      if (inner) bgImg = window.getComputedStyle(inner).backgroundImage;
+    }
+
+    if (bgImg && bgImg !== 'none') {
+      const dataId = el.dataset.id || el.getAttribute('data-id') || Math.random().toString(36).substr(2, 6);
+      const elClass = Array.from(el.classList).find(c => c.startsWith('elementor-element-'));
+      const selector = elClass
+        ? '.' + elClass + '.supercraft-scroll-zoom-bg::before'
+        : '[data-id="' + dataId + '"].supercraft-scroll-zoom-bg::before';
+
+      let styleTag = document.getElementById('supercraft-scroll-zoom-styles');
+      if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = 'supercraft-scroll-zoom-styles';
+        document.head.appendChild(styleTag);
+      }
+      styleTag.textContent += selector + ' { background-image: ' + bgImg + ' !important; }\n';
+
+      // Hide parent static background so only ::before renders it
+      el.setAttribute('data-scroll-zoom-active', 'true');
+    }
+
+    // Ensure host container stays visible and un-transformed
+    el.style.opacity = '1';
+    el.style.transform = 'none';
+    el.style.filter = 'none';
+
+    const startScale = isZoomOut ? 1.25 : 1;
+    const endScale = isZoomOut ? 1 : 1.25;
+
+    el.style.setProperty('--supercraft-bg-scale', startScale);
+
+    if (isScrub) {
+      const startTrigger = (el.dataset.transformScrollStart || getComputedStyle(el).getPropertyValue('--transform-scroll-start') || 'top bottom').trim();
+      const endTrigger = (el.dataset.transformScrollEnd || getComputedStyle(el).getPropertyValue('--transform-scroll-end') || 'bottom top').trim();
+
+      gsap.fromTo(el,
+        { '--supercraft-bg-scale': startScale },
+        {
+          '--supercraft-bg-scale': endScale,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: el,
+            start: startTrigger,
+            end: endTrigger,
+            scrub: 0.5, // 0.5s smooth inertia catch-up eliminates scroll jitter
+          }
+        }
+      );
+    } else {
+      const startTrigger = (el.dataset.transformTrigger || getComputedStyle(el).getPropertyValue('--transform-trigger') || 'top 85%').trim();
+      gsap.to(el, {
+        '--supercraft-bg-scale': endScale,
+        duration: 1.2,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: el,
+          start: startTrigger,
+          toggleActions: 'play none none none'
+        }
+      });
+    }
+  }
+
   function initScrollTransform() {
     const elements = gsap.utils.toArray('.scroll-transform');
 
     elements.forEach((el) => {
       // Skip if already initialized
       if (el.dataset.scrollTransformInit === 'true') return;
+
+      if (el.classList.contains('scroll-zoom-bg-in') || el.classList.contains('scroll-zoom-bg-out') || el.classList.contains('supercraft-scroll-zoom-bg')) {
+        const isZoomOut = el.classList.contains('scroll-zoom-bg-out');
+        const isScrub = el.classList.contains('scroll-transform-scrub') || !!el.dataset.transformScrub;
+        setupScrollZoomBackground(el, isZoomOut, isScrub);
+        el.dataset.scrollTransformInit = 'true';
+        return;
+      }
+
+
 
       const styles = getComputedStyle(el);
 
@@ -1469,6 +1553,15 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
     elements.forEach((el) => {
       if (el.dataset.scrollTransformScrubInit === 'true') return;
 
+      if (el.classList.contains('scroll-zoom-bg-in') || el.classList.contains('scroll-zoom-bg-out') || el.classList.contains('supercraft-scroll-zoom-bg')) {
+        const isZoomOut = el.classList.contains('scroll-zoom-bg-out');
+        setupScrollZoomBackground(el, isZoomOut, true);
+        el.dataset.scrollTransformScrubInit = 'true';
+        return;
+      }
+
+
+
       const styles = getComputedStyle(el);
 
       const parseNum = (val, fallback = 0) => {
@@ -2360,6 +2453,16 @@ const activeIdleTimelines = new Map();
         };
 
         const applyScrollTrigger = () => {
+          if (effect === 'scroll-zoom-bg-in' || effect === 'scroll-zoom-bg-out') {
+            triggerEls.forEach((triggerItem, idx) => {
+              const targetItem = targetEls[idx] || targetEls[0];
+              if (!targetItem) return;
+              setupScrollZoomBackground(targetItem, effect === 'scroll-zoom-bg-out', true);
+            });
+            return;
+          }
+
+
           const transforms = getPresetTransforms(effect, { duration, delay, ease, intensity });
           triggerEls.forEach((triggerItem, idx) => {
             const targetItem = targetEls[idx] || targetEls[0];
@@ -2383,6 +2486,14 @@ const activeIdleTimelines = new Map();
           if (effect === 'zoom-bg') {
             targetEls.forEach((el) => {
               el.classList.add('supercraft-zoom-bg');
+              let bgImg = window.getComputedStyle(el).backgroundImage;
+              if (!bgImg || bgImg === 'none') {
+                const inner = el.querySelector('.e-con-inner, .elementor-background-overlay');
+                if (inner) bgImg = window.getComputedStyle(inner).backgroundImage;
+              }
+              if (bgImg && bgImg !== 'none') {
+                el.style.backgroundImage = bgImg;
+              }
             });
 
             // Set up hover triggers to toggle class
@@ -2581,6 +2692,18 @@ const activeIdleTimelines = new Map();
     switch (animationType) {
       case 'scroll-transform':
         const preset = opts.scrollPreset || 'fade-up';
+
+        if (preset === 'scroll-zoom-bg-in' || preset === 'scroll-zoom-bg-out') {
+          triggerEls.forEach((triggerEl, idx) => {
+            const target = targetEls[idx] || targetEls[0];
+            if (!target) return;
+            setupScrollZoomBackground(target, preset === 'scroll-zoom-bg-out', isScrub);
+          });
+          break;
+        }
+
+
+
         const fromVars = {};
 
         if (preset === 'custom') {
@@ -3058,11 +3181,30 @@ const activeIdleTimelines = new Map();
     });
   }
 
+  function initZoomBg() {
+    const elements = document.querySelectorAll('.zoom-bg, .supercraft-zoom-bg');
+    elements.forEach((el) => {
+      if (el.dataset.zoomBgInit === 'true') return;
+      el.dataset.zoomBgInit = 'true';
+      el.classList.add('supercraft-zoom-bg');
+
+      let bgImg = window.getComputedStyle(el).backgroundImage;
+      if (!bgImg || bgImg === 'none') {
+        const inner = el.querySelector('.e-con-inner, .elementor-background-overlay');
+        if (inner) bgImg = window.getComputedStyle(inner).backgroundImage;
+      }
+      if (bgImg && bgImg !== 'none') {
+        el.style.backgroundImage = bgImg;
+      }
+    });
+  }
+
   /* ==========================================
      MASTER INIT
      ========================================== */
   function initAllAnimations() {
     initCoreAnimations();
+    initZoomBg();
     initScrollFillHeadings();
     initScrollTransform();
     initScrollTransformScrub();
