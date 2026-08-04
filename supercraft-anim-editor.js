@@ -1,6 +1,22 @@
-// Shared helpers to track the currently selected widget across editor/preview contexts
 const getActiveView = () => window.__supercraftActiveView || null;
 const setActiveView = (view) => { window.__supercraftActiveView = view; };
+
+const getGlobalColor = (val, globalKey) => {
+  if (!val && !globalKey) return '';
+  if (val && typeof val === 'string') return val;
+  if (typeof val === 'object') {
+    if (val.color) return val.color;
+    if (val.value) return val.value;
+  }
+  if (globalKey) {
+    const cleaned = globalKey
+      .toString()
+      .replace(/^.*[=:]/, '')
+      .replace(/[^a-zA-Z0-9_-]/g, '');
+    if (cleaned) return `var(--e-global-color-${cleaned})`;
+  }
+  return '';
+};
 
 // Track timeouts that reapply start-state after play, so we can cancel on deselect
 const startResetTimers = new Map();
@@ -664,18 +680,28 @@ function applyStartStateFromStyles(el) {
         if (contDir === 'custom') {
           contDir = settings.supercraft_container_direction || 'center';
         }
+        $el.removeClass('container-reveal-center container-reveal-left container-reveal-right container-reveal-top container-reveal-bottom container-reveal-cinematic-gate container-reveal-block-curtain container-reveal-custom');
         $el.addClass('container-reveal-' + contDir);
         if (contDir === 'block-curtain') {
-          if (settings.supercraft_container_block_color) {
-            const blockColor = getGlobalColor(settings.supercraft_container_block_color);
-            if (blockColor) styles.push(`--cr-block-color:${blockColor}`);
-          }
+          const gKey = settings.__globals__ ? settings.__globals__.supercraft_container_block_color : '';
+          const rawColor = settings.supercraft_container_block_color || gKey || '#ff3b26';
+          const blockColor = getGlobalColor(rawColor, gKey) || (typeof rawColor === 'string' ? rawColor : '#ff3b26');
+          styles.push(`--cr-block-color:${blockColor}`);
+          $el.attr('data-container-block-color', blockColor);
+          $el.css('--cr-block-color', blockColor);
+
           if (settings.supercraft_container_block_count) {
             $el.attr('data-container-block-count', settings.supercraft_container_block_count);
+            styles.push(`--cr-block-count:${settings.supercraft_container_block_count}`);
           }
           if (settings.supercraft_container_block_direction) {
             $el.attr('data-container-block-direction', settings.supercraft_container_block_direction);
+            styles.push(`--cr-block-direction:${settings.supercraft_container_block_direction}`);
           }
+        }
+        if (settings.supercraft_container_block_bg_effect) {
+          $el.attr('data-container-bg-effect', settings.supercraft_container_block_bg_effect);
+          styles.push(`--cr-bg-effect:${settings.supercraft_container_block_bg_effect}`);
         }
         
         if (settings.supercraft_container_duration) {
@@ -1069,18 +1095,28 @@ function applyStartStateFromStyles(el) {
     });
     // Mark text-reveal elements so the CSS opacity:1 !important override is lifted,
     // allowing GSAP to animate .tr-word from opacity:0
-    document.querySelectorAll('.text-reveal').forEach((el) => {
+    document.querySelectorAll('.text-reveal, .container-reveal, .container-reveal-block-curtain').forEach((el) => {
       el.setAttribute('data-supercraft-preview-play', 'yes');
     });
     if (window.initAllAnimations) {
       window.initAllAnimations();
     }
-    // Refresh triggers only; manual replay was causing a second run (auto-play + manual).
     setTimeout(() => {
       if (window.ScrollTrigger) {
         ScrollTrigger.refresh();
       }
     }, 150);
+    setTimeout(() => {
+      document.querySelectorAll('.container-reveal-block-curtain').forEach((el) => {
+        el.removeAttribute('data-supercraft-preview-play');
+        const wrapper = el.querySelector('.cr-block-curtain-wrapper');
+        if (wrapper) {
+          Array.from(wrapper.children).forEach((item) => {
+            item.style.display = 'none';
+          });
+        }
+      });
+    }, 2500);
 
     // If preview state is "start" for custom non-scrub scroll transforms, re-apply the static start state after play
     const targets = document.querySelectorAll('[data-preview-state="start"].scroll-transform:not(.scroll-transform-scrub)');

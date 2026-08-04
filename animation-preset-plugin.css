@@ -688,7 +688,7 @@ body:not(.elementor-editor-active) .container-reveal-scroll {
 .cr-block-curtain-item {
   flex: 1 !important;
   height: 100% !important;
-  background-color: var(--cr-block-color, #ff3b26) !important;
+  background-color: var(--cr-block-color, #ff3b26);
   will-change: transform !important;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;

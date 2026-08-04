@@ -909,7 +909,9 @@ $supercraft_controls_callback = function ($element, $section_id) {
             'label' => __('Block Overlay Color', 'supercraft-anim'),
             'type' => \Elementor\Controls_Manager::COLOR,
             'default' => '#ff3b26',
-            'frontend_available' => false,
+            'selectors' => [
+                '{{WRAPPER}}' => '--cr-block-color: {{VALUE}};',
+            ],
             'condition' => [
                 'supercraft_anim_category' => 'container-reveal',
                 'supercraft_container_preset' => 'block-curtain',
@@ -925,7 +927,9 @@ $supercraft_controls_callback = function ($element, $section_id) {
             'min' => 2,
             'max' => 12,
             'default' => 5,
-            'frontend_available' => false,
+            'selectors' => [
+                '{{WRAPPER}}' => '--cr-block-count: {{VALUE}};',
+            ],
             'condition' => [
                 'supercraft_anim_category' => 'container-reveal',
                 'supercraft_container_preset' => 'block-curtain',
@@ -945,10 +949,36 @@ $supercraft_controls_callback = function ($element, $section_id) {
                 'right' => __('Scale Right', 'supercraft-anim'),
             ],
             'default' => 'up',
-            'frontend_available' => false,
+            'selectors' => [
+                '{{WRAPPER}}' => '--cr-block-direction: {{VALUE}};',
+            ],
             'condition' => [
                 'supercraft_anim_category' => 'container-reveal',
                 'supercraft_container_preset' => 'block-curtain',
+            ],
+        ]
+    );
+
+    $element->add_control(
+        'supercraft_container_block_bg_effect',
+        [
+            'label' => __('Background Image Effect', 'supercraft-anim'),
+            'type' => \Elementor\Controls_Manager::SELECT,
+            'options' => [
+                'none' => __('None', 'supercraft-anim'),
+                'zoom-out' => __('Zoom Out (1.3 → 1.0)', 'supercraft-anim'),
+                'zoom-in' => __('Zoom In (1.0 → 1.25)', 'supercraft-anim'),
+                'blur' => __('Blur Reveal (Blur → Sharp)', 'supercraft-anim'),
+                'zoom-out-blur' => __('Zoom Out + Blur', 'supercraft-anim'),
+                'zoom-in-blur' => __('Zoom In + Blur', 'supercraft-anim'),
+            ],
+            'default' => 'none',
+            'selectors' => [
+                '{{WRAPPER}}' => '--cr-bg-effect: {{VALUE}};',
+            ],
+            'condition' => [
+                'supercraft_anim_category' => 'container-reveal',
+                'supercraft_container_preset!' => 'cinematic-gate',
             ],
         ]
     );

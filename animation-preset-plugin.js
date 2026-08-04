@@ -1163,7 +1163,7 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
     if (bgImage) return bgImage;
 
     // 2. Isolate inline or stylesheet backgrounds set on the container itself or its ::before pseudo-element
-    let inlineBg = styles.backgroundImage;
+    let inlineBg = container.dataset.supercraftOriginalBgImage || styles.backgroundImage;
     let usingPseudo = false;
     let targetStyles = styles;
 
@@ -1177,6 +1177,7 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
     }
 
     if (inlineBg && inlineBg !== 'none' && !inlineBg.includes('gradient')) {
+      container.dataset.supercraftOriginalBgImage = inlineBg;
       const bgPos = targetStyles.backgroundPosition || 'center center';
       const bgSize = targetStyles.backgroundSize || 'cover';
       const bgRepeat = targetStyles.backgroundRepeat || 'no-repeat';
@@ -1287,28 +1288,81 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
                         container.dataset.revealScrollEnd || 'top 20%';
       const forwardOnly = (container.dataset.revealForwardOnly || '').trim().toLowerCase() === 'true';
 
+      // Clear previous dynamic background layer on re-init so background image is restored cleanly
+      const existingBgLayer = container.querySelector('.supercraft-dynamic-bg-layer');
+      if (existingBgLayer && container.dataset.supercraftOriginalBgImage) {
+        container.style.backgroundImage = container.dataset.supercraftOriginalBgImage;
+        existingBgLayer.remove();
+        delete container.dataset.supercraftOriginalBgImage;
+      }
+
+      // Background image reveal effect setup for all container reveal presets (except cinematic-gate)
+      const bgEffect = (container.dataset.containerBgEffect || styles.getPropertyValue('--cr-bg-effect') || 'none').trim().toLowerCase();
+      let bgTarget = null;
+      let bgFromVars = null;
+      let bgToVars = null;
+
+      if (direction !== 'cinematic-gate' && bgEffect !== 'none') {
+        bgTarget = getOrCreateBgImage(container, styles);
+        if (bgTarget) {
+          switch (bgEffect) {
+            case 'zoom-out':
+              bgFromVars = { scale: 1.35 };
+              bgToVars = { scale: 1.0 };
+              break;
+            case 'zoom-in':
+              bgFromVars = { scale: 1.0 };
+              bgToVars = { scale: 1.25 };
+              break;
+            case 'blur':
+              bgFromVars = { filter: 'blur(15px)' };
+              bgToVars = { filter: 'blur(0px)' };
+              break;
+            case 'zoom-out-blur':
+              bgFromVars = { scale: 1.35, filter: 'blur(15px)' };
+              bgToVars = { scale: 1.0, filter: 'blur(0px)' };
+              break;
+            case 'zoom-in-blur':
+              bgFromVars = { scale: 1.0, filter: 'blur(15px)' };
+              bgToVars = { scale: 1.25, filter: 'blur(0px)' };
+              break;
+          }
+          if (bgFromVars) {
+            gsap.set(bgTarget, bgFromVars);
+          }
+        }
+      }
+
       if (direction === 'block-curtain') {
-        let wrapper = container.querySelector('.cr-block-curtain-wrapper');
-        if (!wrapper) {
-          wrapper = document.createElement('div');
-          wrapper.className = 'cr-block-curtain-wrapper';
-          container.appendChild(wrapper);
+        const isPreviewPlaying = container.getAttribute('data-supercraft-preview-play') === 'yes' || !!container.dataset.supercraftPreviewPlay;
+
+        // Always remove old wrapper so new color, count, and direction apply instantly
+        let existingWrapper = container.querySelector('.cr-block-curtain-wrapper');
+        if (existingWrapper) {
+          existingWrapper.remove();
         }
 
-        const countAttr = parseInt(container.dataset.containerBlockCount, 10);
+        const wrapper = document.createElement('div');
+        wrapper.className = 'cr-block-curtain-wrapper';
+        container.appendChild(wrapper);
+
+        const countAttr = parseInt(container.dataset.containerBlockCount || styles.getPropertyValue('--cr-block-count'), 10);
         const count = (!Number.isNaN(countAttr) && countAttr > 0) ? countAttr : 5;
 
-        if (wrapper.children.length !== count) {
-          wrapper.innerHTML = '';
-          for (let i = 0; i < count; i++) {
-            const item = document.createElement('div');
-            item.className = 'cr-block-curtain-item';
-            wrapper.appendChild(item);
-          }
+        for (let i = 0; i < count; i++) {
+          const item = document.createElement('div');
+          item.className = 'cr-block-curtain-item';
+          wrapper.appendChild(item);
         }
 
         const items = Array.from(wrapper.children);
-        const wipeDir = (container.dataset.containerBlockDirection || 'up').toLowerCase();
+        const rawColor = (styles.getPropertyValue('--cr-block-color') || container.dataset.containerBlockColor || '').trim();
+        const blockColor = rawColor || '#ff3b26';
+        items.forEach((item) => {
+          item.style.setProperty('background-color', blockColor, 'important');
+        });
+
+        const wipeDir = (container.dataset.containerBlockDirection || styles.getPropertyValue('--cr-block-direction') || 'up').trim().toLowerCase();
 
         let transformProp = 'scaleY';
         let transformOrigin = 'top';
@@ -1321,16 +1375,30 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
         } else if (wipeDir === 'right') {
           transformProp = 'scaleX';
           transformOrigin = 'right';
+        } else { // up
+          transformProp = 'scaleY';
+          transformOrigin = 'top';
         }
 
-        gsap.set(items, { [transformProp]: 1, transformOrigin });
+        // Reset both scale axes & display state before animating
+        gsap.set(items, { scaleX: 1, scaleY: 1, display: 'block', transformOrigin });
         gsap.set(container, { autoAlpha: 1, visibility: 'visible', clipPath: 'none', webkitClipPath: 'none' });
 
-        if (isEditor) {
-          gsap.set(items, { [transformProp]: 0 });
+        if (isEditor && !isPreviewPlaying) {
+          // In Elementor editor static mode (not playing preview), hide overlay items so background image and content remain 100% visible while designing
+          gsap.set(items, { display: 'none' });
+          if (bgTarget) {
+            gsap.set(bgTarget, { scale: 1, filter: 'blur(0px)' });
+          }
           container.dataset.containerRevealInit = 'true';
           return;
         }
+
+        const triggerConfig = (isEditor && isPreviewPlaying) ? null : {
+          trigger: container,
+          start: startTrigger,
+          toggleActions: 'play none none none',
+        };
 
         if (isScrollScrub) {
           const tl = gsap.timeline({
@@ -1355,7 +1423,14 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
             duration: duration,
             stagger: 0.08,
             ease: ease,
-          });
+          }, 0);
+          if (bgTarget && bgToVars) {
+            tl.to(bgTarget, {
+              ...bgToVars,
+              duration: duration,
+              ease: ease,
+            }, 0);
+          }
         } else {
           gsap.to(items, {
             [transformProp]: 0,
@@ -1363,12 +1438,17 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
             delay: delay,
             stagger: 0.08,
             ease: ease,
-            scrollTrigger: {
-              trigger: container,
-              start: startTrigger,
-              toggleActions: 'play none none none',
-            },
+            scrollTrigger: triggerConfig,
           });
+          if (bgTarget && bgToVars) {
+            gsap.to(bgTarget, {
+              ...bgToVars,
+              duration: duration,
+              delay: delay,
+              ease: ease,
+              scrollTrigger: triggerConfig,
+            });
+          }
         }
 
         container.dataset.containerRevealInit = 'true';
@@ -1398,13 +1478,18 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
       }
 
       // In the Elementor editor, show the end state for visibility without needing to play
-      if (isEditor) {
+      const isPreviewPlaying = container.getAttribute('data-supercraft-preview-play') === 'yes' || !!container.dataset.supercraftPreviewPlay;
+
+      if (isEditor && !isPreviewPlaying) {
         gsap.set(container, {
           autoAlpha: 1,
           clipPath: fullClip,
           webkitClipPath: fullClip,
           visibility: 'visible',
         });
+        if (bgTarget) {
+          gsap.set(bgTarget, { scale: 1, filter: 'blur(0px)' });
+        }
         container.dataset.containerRevealInit = 'true';
         return;
       }
@@ -1494,7 +1579,24 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
             }, '<+=0.2');
           }
         } else {
-          gsap.fromTo(
+          const tl = gsap.timeline({
+            scrollTrigger: {
+              trigger: container,
+              start: scrollStart,
+              end: scrollEnd,
+              scrub: 0,
+              onUpdate: (self) => {
+                if (forwardOnly) {
+                  const max = Math.max(self.progress, self._maxProgress || 0);
+                  self._maxProgress = max;
+                  if (self.progress < max) {
+                    self.animation.progress(max);
+                  }
+                }
+              },
+            },
+          });
+          tl.fromTo(
             container,
             {
               autoAlpha: 1,
@@ -1507,23 +1609,11 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
               webkitClipPath: fullClip,
               ease,
               immediateRender: false,
-              scrollTrigger: {
-                trigger: container,
-                start: scrollStart,
-                end: scrollEnd,
-                scrub: 0,
-                onUpdate: (self) => {
-                  if (forwardOnly) {
-                    const max = Math.max(self.progress, self._maxProgress || 0);
-                    self._maxProgress = max;
-                    if (self.progress < max) {
-                      self.animation.progress(max);
-                    }
-                  }
-                },
-              },
             }
           );
+          if (bgTarget && bgToVars) {
+            tl.to(bgTarget, { ...bgToVars, ease, immediateRender: false }, 0);
+          }
         }
       } else {
         if (direction === 'cinematic-gate') {
@@ -1598,13 +1688,13 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
 
           tl.set(container, { clearProps: 'clipPath,webkitClipPath' });
         } else {
-          const tl = gsap.timeline({
-            scrollTrigger: {
-              trigger: container,
-              start: startTrigger,
-              toggleActions: 'play none none none',
-            },
-          });
+          const isPreviewPlaying = container.getAttribute('data-supercraft-preview-play') === 'yes' || !!container.dataset.supercraftPreviewPlay;
+          const triggerConfig = (isEditor && isPreviewPlaying) ? null : {
+            trigger: container,
+            start: startTrigger,
+            toggleActions: 'play none none none',
+          };
+          const tl = gsap.timeline({ scrollTrigger: triggerConfig });
 
           tl.fromTo(
             container,
@@ -1622,6 +1712,9 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
             },
             delay
           );
+          if (bgTarget && bgToVars) {
+            tl.to(bgTarget, { ...bgToVars, duration: duration, ease }, delay);
+          }
         }
       }
 
@@ -2899,6 +2992,14 @@ const activeIdleTimelines = new Map();
 
       case 'container-reveal':
         const contDir = opts.containerDirection || 'center';
+        if (contDir === 'block-curtain') {
+          targetEls.forEach((target) => {
+            target.classList.add('container-reveal', 'container-reveal-block-curtain');
+            delete target.dataset.containerRevealInit;
+          });
+          initContainerReveal();
+          break;
+        }
         const contClipMap = {
           center: 'inset(50% 0% 50% 0%)',
           left: 'inset(0% 0% 0% 100%)',

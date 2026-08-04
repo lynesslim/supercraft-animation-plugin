@@ -373,7 +373,12 @@ function supercraft_apply_attrs($element) {
                 }
                 if (!empty($settings['supercraft_container_block_direction'])) {
                     $data_attrs['data-container-block-direction'] = esc_attr($settings['supercraft_container_block_direction']);
+                    $styles[] = '--cr-block-direction:' . esc_attr($settings['supercraft_container_block_direction']);
                 }
+            }
+            if (!empty($settings['supercraft_container_block_bg_effect'])) {
+                $data_attrs['data-container-bg-effect'] = esc_attr($settings['supercraft_container_block_bg_effect']);
+                $styles[] = '--cr-bg-effect:' . esc_attr($settings['supercraft_container_block_bg_effect']);
             }
             if ($settings['supercraft_container_duration'] !== '' && $settings['supercraft_container_duration'] !== null) {
                 $styles[] = '--reveal-duration:' . esc_attr($settings['supercraft_container_duration']) . 's';
@@ -611,6 +616,15 @@ function supercraft_global_css_var($global) {
         return '';
     }
     return 'var(--e-global-color-' . $raw . ')';
+}
+
+function supercraft_get_elementor_global_color_var($val) {
+    if (empty($val)) return '';
+    $normalized = supercraft_normalize_color($val);
+    if (is_string($normalized) && strpos($normalized, 'globals/colors') !== false) {
+        return supercraft_global_css_var($normalized);
+    }
+    return esc_attr($normalized);
 }
 
 function supercraft_slugify($text) {
