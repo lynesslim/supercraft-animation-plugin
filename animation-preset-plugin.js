@@ -564,28 +564,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Extract background image from element, pseudo-elements, child containers, or lazyload attributes
     let bgImg = extractContainerBackgroundImage(el);
 
-    if (bgImg && bgImg !== 'none') {
-      let dataId = el.dataset.id || el.getAttribute('data-id');
-      if (!dataId) {
-        dataId = Math.random().toString(36).substr(2, 6);
-        el.setAttribute('data-id', dataId);
-      }
-      const elClass = Array.from(el.classList).find(c => c.startsWith('elementor-element-'));
-      const selector = elClass
-        ? '.' + elClass + '.supercraft-scroll-zoom-bg::before'
-        : '[data-id="' + dataId + '"].supercraft-scroll-zoom-bg::before';
-
-      let styleTag = document.getElementById('supercraft-scroll-zoom-styles');
-      if (!styleTag) {
-        styleTag = document.createElement('style');
-        styleTag.id = 'supercraft-scroll-zoom-styles';
-        document.head.appendChild(styleTag);
-      }
-      styleTag.textContent += selector + ' { background-image: ' + bgImg + ' !important; }\n';
-
-      // Hide parent static background so only ::before renders it
-      el.setAttribute('data-scroll-zoom-active', 'true');
-    } else {
+    if (!bgImg || bgImg === 'none') {
       // Retry background extraction if lazy loading or async stylesheets load later
       if (document.readyState !== 'complete') {
         window.addEventListener('load', function () {
@@ -594,7 +573,31 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         }, { once: true });
       }
+      return;
     }
+
+    let dataId = el.dataset.id || el.getAttribute('data-id');
+    if (!dataId) {
+      dataId = Math.random().toString(36).substr(2, 6);
+      el.setAttribute('data-id', dataId);
+    }
+    const elClass = Array.from(el.classList).find(c => c.startsWith('elementor-element-'));
+    const selector = elClass
+      ? '.' + elClass + '.supercraft-scroll-zoom-bg::before'
+      : '[data-id="' + dataId + '"].supercraft-scroll-zoom-bg::before';
+
+    let styleTag = document.getElementById('supercraft-scroll-zoom-styles');
+    if (!styleTag) {
+      styleTag = document.createElement('style');
+      styleTag.id = 'supercraft-scroll-zoom-styles';
+      document.head.appendChild(styleTag);
+    }
+    if (!styleTag.textContent.includes(selector)) {
+      styleTag.textContent += selector + ' { background-image: ' + bgImg + ' !important; }\n';
+    }
+
+    // Hide parent static background so only ::before renders it
+    el.setAttribute('data-scroll-zoom-active', 'true');
 
     // Ensure host container stays visible and un-transformed
     el.style.opacity = '1';
