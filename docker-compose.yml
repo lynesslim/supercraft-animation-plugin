@@ -28,6 +28,8 @@ services:
       - wordpress_data:/var/www/html
       # Mount the current plugin directory directly
       - .:/var/www/html/wp-content/plugins/supercraft-animation-plugin
+      # Mount Supercraft SiteBuilder Child Plugin directly from workspace
+      - /Volumes/T7/Lyness/SAAS/SuperDesign:/var/www/html/wp-content/plugins/supercraft-sitebuilder
       # Mount elementor plugins from the home directory location
       - /Users/lynesslim/.supercraft-local-plugins/elementor:/var/www/html/wp-content/plugins/elementor
       - /Users/lynesslim/.supercraft-local-plugins/pro-elements:/var/www/html/wp-content/plugins/pro-elements
