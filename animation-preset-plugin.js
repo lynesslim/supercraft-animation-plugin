@@ -692,9 +692,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const elements = gsap.utils.toArray('.scroll-transform');
 
     elements.forEach((el) => {
-      // Skip if already initialized
-      if (el.dataset.scrollTransformInit === 'true') return;
-
+      // Scroll-zoom-bg elements must always be processed — their init guard
+      // is handled internally by setupScrollZoomBackground (data-scroll-zoom-init).
+      // Server-rendered data-scroll-transform-init="true" must NOT block them.
       if (el.classList.contains('scroll-zoom-bg-in') || el.classList.contains('scroll-zoom-bg-out') || el.classList.contains('supercraft-scroll-zoom-bg')) {
         const isZoomOut = el.classList.contains('scroll-zoom-bg-out');
         const isScrub = el.classList.contains('scroll-transform-scrub') || !!el.dataset.transformScrub;
@@ -702,6 +702,9 @@ document.addEventListener('DOMContentLoaded', function () {
         el.dataset.scrollTransformInit = 'true';
         return;
       }
+
+      // Skip if already initialized (non-zoom-bg elements)
+      if (el.dataset.scrollTransformInit === 'true') return;
 
 
 
@@ -1850,14 +1853,15 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
     const elements = gsap.utils.toArray('.scroll-transform-scrub');
 
     elements.forEach((el) => {
-      if (el.dataset.scrollTransformScrubInit === 'true') return;
-
+      // Scroll-zoom-bg elements must always be processed (same rationale as initScrollTransform)
       if (el.classList.contains('scroll-zoom-bg-in') || el.classList.contains('scroll-zoom-bg-out') || el.classList.contains('supercraft-scroll-zoom-bg')) {
         const isZoomOut = el.classList.contains('scroll-zoom-bg-out');
         setupScrollZoomBackground(el, isZoomOut, true);
         el.dataset.scrollTransformScrubInit = 'true';
         return;
       }
+
+      if (el.dataset.scrollTransformScrubInit === 'true') return;
 
 
 
