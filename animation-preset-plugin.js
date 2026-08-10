@@ -675,7 +675,8 @@ document.addEventListener('DOMContentLoaded', function () {
           scrollTrigger: {
             trigger: triggerEl,
             start: startTrigger,
-            toggleActions: 'play none none none'
+            toggleActions: 'play none none reverse',
+            invalidateOnRefresh: true
           }
         }
       );
@@ -3542,6 +3543,14 @@ const activeIdleTimelines = new Map();
   }
 
   initAllAnimations();
+
+  if (document.readyState !== 'complete') {
+    window.addEventListener('load', function () {
+      if (window.ScrollTrigger) {
+        ScrollTrigger.refresh();
+      }
+    });
+  }
   // Expose for editor preview tools
   window.initAllAnimations = initAllAnimations;
   window.initCoreAnimations = initCoreAnimations;
