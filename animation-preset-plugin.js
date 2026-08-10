@@ -553,40 +553,9 @@ document.addEventListener('DOMContentLoaded', function () {
     return null;
   }
 
-  /* Helper for Scroll Zoom Background (In/Out, Scrub or One-time Entrance) */
-  function setupScrollZoomBackground(el, isZoomOut = false, isScrub = false, opts = {}) {
-    if (!el) return;
-
-    if (typeof opts === 'number') {
-      opts = { duration: opts };
-    }
-
-    el.classList.add('supercraft-scroll-zoom-bg');
-
-    // Ensure host container is ALWAYS visible and un-transformed (prevents unwanted fade-in pops)
-    el.style.opacity = '1';
-    el.style.transform = 'none';
-    el.style.filter = 'none';
-
-    const startScale = isZoomOut ? 1.25 : 1;
-    const endScale = isZoomOut ? 1 : 1.25;
-
-    el.style.setProperty('--supercraft-bg-scale', startScale);
-
-    // Extract background image from element, pseudo-elements, child containers, or lazyload attributes
-    let bgImg = extractContainerBackgroundImage(el);
-
-    if (!bgImg || bgImg === 'none') {
-      // Retry background extraction if lazy loading or async stylesheets load later
-      if (document.readyState !== 'complete') {
-        window.addEventListener('load', function () {
-          if (el.getAttribute('data-scroll-zoom-active') !== 'true') {
-            setupScrollZoomBackground(el, isZoomOut, isScrub, opts);
-          }
-        }, { once: true });
-      }
-      return;
-    }
+  /* Injects the background-image onto the ::before pseudo-element via a dynamic stylesheet rule */
+  function injectScrollZoomBgStyle(el, bgImg) {
+    if (!bgImg || bgImg === 'none') return false;
 
     let dataId = el.dataset.id || el.getAttribute('data-id');
     if (!dataId) {
@@ -608,8 +577,91 @@ document.addEventListener('DOMContentLoaded', function () {
       styleTag.textContent += selector + ' { background-image: ' + bgImg + ' !important; }\n';
     }
 
-    // Hide parent static background so only ::before renders it
     el.setAttribute('data-scroll-zoom-active', 'true');
+    return true;
+  }
+
+  /* Deferred background extraction: polls for the background image using
+     IntersectionObserver + MutationObserver so we catch Elementor lazy-loaded backgrounds */
+  function deferredBgExtraction(el) {
+    // Try immediately first
+    let bgImg = extractContainerBackgroundImage(el);
+    if (injectScrollZoomBgStyle(el, bgImg)) return;
+
+    // Strategy 1: Retry on window load (catches async stylesheets)
+    if (document.readyState !== 'complete') {
+      window.addEventListener('load', function () {
+        if (el.getAttribute('data-scroll-zoom-active') === 'true') return;
+        bgImg = extractContainerBackgroundImage(el);
+        if (injectScrollZoomBgStyle(el, bgImg)) return;
+        // If still not found after load, start observing
+        observeForBg(el);
+      }, { once: true });
+    } else {
+      observeForBg(el);
+    }
+  }
+
+  function observeForBg(el) {
+    if (el.getAttribute('data-scroll-zoom-active') === 'true') return;
+
+    // Strategy 2: IntersectionObserver — Elementor lazy-loads bg images when near viewport
+    if (window.IntersectionObserver) {
+      const io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            io.disconnect();
+            // Small delay to let Elementor apply the background after intersection
+            setTimeout(function () {
+              const bgImg = extractContainerBackgroundImage(el);
+              injectScrollZoomBgStyle(el, bgImg);
+            }, 100);
+          }
+        });
+      }, { rootMargin: '200px' });
+      io.observe(el);
+    }
+
+    // Strategy 3: MutationObserver — catch inline style or class changes from Elementor/lazy loaders
+    if (window.MutationObserver) {
+      const mo = new MutationObserver(function () {
+        if (el.getAttribute('data-scroll-zoom-active') === 'true') {
+          mo.disconnect();
+          return;
+        }
+        const bgImg = extractContainerBackgroundImage(el);
+        if (injectScrollZoomBgStyle(el, bgImg)) {
+          mo.disconnect();
+        }
+      });
+      mo.observe(el, { attributes: true, attributeFilter: ['style', 'class'], childList: true, subtree: true });
+      // Safety: disconnect after 10s regardless
+      setTimeout(function () { mo.disconnect(); }, 10000);
+    }
+  }
+
+  /* Helper for Scroll Zoom Background (In/Out, Scrub or One-time Entrance) */
+  function setupScrollZoomBackground(el, isZoomOut = false, isScrub = false, opts = {}) {
+    if (!el) return;
+
+    if (typeof opts === 'number') {
+      opts = { duration: opts };
+    }
+
+    el.classList.add('supercraft-scroll-zoom-bg');
+
+    // Ensure host container is ALWAYS visible and un-transformed (prevents unwanted fade-in pops)
+    el.style.opacity = '1';
+    el.style.transform = 'none';
+    el.style.filter = 'none';
+
+    const startScale = isZoomOut ? 1.25 : 1;
+    const endScale = isZoomOut ? 1 : 1.25;
+
+    el.style.setProperty('--supercraft-bg-scale', startScale);
+
+    // Background image extraction is decoupled — it uses observers to catch lazy-loaded images
+    deferredBgExtraction(el);
 
     if (el.dataset.scrollZoomInit === 'true') {
       gsap.killTweensOf(el);
