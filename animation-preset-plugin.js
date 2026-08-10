@@ -665,17 +665,20 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       );
     } else {
-      gsap.to(el, {
-        '--supercraft-bg-scale': endScale,
-        duration: duration,
-        delay: delay,
-        ease: ease,
-        scrollTrigger: {
-          trigger: triggerEl,
-          start: startTrigger,
-          toggleActions: 'play none none none'
+      gsap.fromTo(el,
+        { '--supercraft-bg-scale': startScale },
+        {
+          '--supercraft-bg-scale': endScale,
+          duration: duration,
+          delay: delay,
+          ease: ease,
+          scrollTrigger: {
+            trigger: triggerEl,
+            start: startTrigger,
+            toggleActions: 'play none none none'
+          }
         }
-      });
+      );
     }
   }
 
