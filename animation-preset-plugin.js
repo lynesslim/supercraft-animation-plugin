@@ -37,10 +37,12 @@ document.addEventListener('DOMContentLoaded', function () {
     function frame(time) { lenis.raf(time); requestAnimationFrame(frame); }
     requestAnimationFrame(frame);
   }
+  let lenisCheckCount = 0;
   function waitForLenis() {
     if (window.Lenis && window.supercraftLenisEnabled) {
       initLenis();
-    } else {
+    } else if (lenisCheckCount < 10) {
+      lenisCheckCount++;
       setTimeout(waitForLenis, 100);
     }
   }
@@ -561,6 +563,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     el.classList.add('supercraft-scroll-zoom-bg');
 
+    // Ensure host container is ALWAYS visible and un-transformed (prevents unwanted fade-in pops)
+    el.style.opacity = '1';
+    el.style.transform = 'none';
+    el.style.filter = 'none';
+
+    const startScale = isZoomOut ? 1.25 : 1;
+    const endScale = isZoomOut ? 1 : 1.25;
+
+    el.style.setProperty('--supercraft-bg-scale', startScale);
+
     // Extract background image from element, pseudo-elements, child containers, or lazyload attributes
     let bgImg = extractContainerBackgroundImage(el);
 
@@ -598,16 +610,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Hide parent static background so only ::before renders it
     el.setAttribute('data-scroll-zoom-active', 'true');
-
-    // Ensure host container stays visible and un-transformed
-    el.style.opacity = '1';
-    el.style.transform = 'none';
-    el.style.filter = 'none';
-
-    const startScale = isZoomOut ? 1.25 : 1;
-    const endScale = isZoomOut ? 1 : 1.25;
-
-    el.style.setProperty('--supercraft-bg-scale', startScale);
 
     if (el.dataset.scrollZoomInit === 'true') {
       gsap.killTweensOf(el);
