@@ -2118,6 +2118,11 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
         }
       }
 
+      // Listen for video loading errors
+      video.addEventListener('error', (e) => {
+        console.error('[Video GSAP] Video element reported an error:', video.error || e);
+      });
+
       // ── Seek logic ─────────────────────────────────────────────
       let targetTime = 0;
       let rafPending = false;
@@ -2127,7 +2132,9 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
         if (video.readyState >= 2 && Math.abs(video.currentTime - targetTime) > 0.01) {
           try {
             video.currentTime = targetTime;
-          } catch (e) {}
+          } catch (e) {
+            console.error('[Video GSAP] Seek error:', e);
+          }
         }
         if (useCanvas) {
           renderFrame();
@@ -2141,7 +2148,12 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
 
       // ── Build ScrollTrigger timeline ──────────────────────────
       function setupTimeline(duration) {
-        if (!duration || !isFinite(duration) || duration <= 0) return;
+        if (!duration || !isFinite(duration) || duration <= 0) {
+          console.warn('[Video GSAP] Invalid duration for timeline:', duration);
+          return;
+        }
+
+        console.log('[Video GSAP] Setting up ScrollTrigger timeline with duration:', duration, 'start:', scrollStart, 'end:', scrollEnd);
 
         const tl = gsap.timeline({
           defaults: { duration: 1 },
@@ -2167,7 +2179,9 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
               if (video.readyState >= 2 && Math.abs(video.currentTime - targetTime) > 0.01) {
                 try {
                   video.currentTime = targetTime;
-                } catch (e) {}
+                } catch (e) {
+                  console.error('[Video GSAP] currentTime update failed:', e);
+                }
               }
             } else {
               if (!rafPending) {
@@ -2184,8 +2198,12 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
       function initTimeline() {
         if (timelineInitialized) return;
         const dur = video.duration;
-        if (!dur || !isFinite(dur) || dur <= 0) return;
+        if (!dur || !isFinite(dur) || dur <= 0) {
+          console.warn('[Video GSAP] Duration check failed:', dur);
+          return;
+        }
         timelineInitialized = true;
+        console.log('[Video GSAP] Timeline initialized. Duration:', dur);
         setupTimeline(dur);
         if (useCanvas) {
           // Render initial frame
