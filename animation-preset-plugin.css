@@ -832,12 +832,17 @@ body.elementor-editor-active .text-reveal:not([data-supercraft-preview-play="yes
 .scroll-zoom-bg-out > .elementor-container,
 .scroll-zoom-bg-out > .elementor-widget-container,
 .scroll-zoom-bg-out > .e-parent-content {
+  position: relative !important;
+  z-index: 1 !important;
+}
 
 /* ================================
    VIDEO GSAP OVERRIDES
+   Force-show Elementor background video (Elementor hides it with inline display:none)
+   The JS MutationObserver also enforces this at runtime.
 =================================== */
-.video-gsap-init video,
-.video-gsap-init .elementor-background-video-hosted {
+.video-gsap-init > video,
+.video-gsap-init video.elementor-background-video-hosted {
   display: block !important;
   opacity: 1 !important;
   visibility: visible !important;

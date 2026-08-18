@@ -2096,6 +2096,28 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
       let ctx = null;
       let useCanvas = isMobile;
 
+      // ── Force video visible and fight Elementor's display:none ─
+      // Elementor's background video module applies display:none inline,
+      // which beats any CSS class rule. We use a MutationObserver to
+      // immediately revert any display:none the moment Elementor sets it.
+      function forceVideoVisible() {
+        const currentDisplay = video.style.display;
+        if (currentDisplay === 'none' || currentDisplay === '') {
+          video.style.setProperty('display', 'block', 'important');
+        }
+        if (!useCanvas) {
+          video.style.setProperty('opacity', '1', 'important');
+          video.style.setProperty('visibility', 'visible', 'important');
+        }
+      }
+
+      forceVideoVisible();
+
+      const videoStyleObserver = new MutationObserver(() => {
+        forceVideoVisible();
+      });
+      videoStyleObserver.observe(video, { attributes: true, attributeFilter: ['style'] });
+
       if (useCanvas) {
         canvas = document.createElement('canvas');
         ctx = canvas.getContext('2d');
@@ -2107,18 +2129,16 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
         canvas.style.objectFit = getComputedStyle(video).objectFit || 'cover';
         canvas.style.display = 'block';
 
-        // Visually hide video without display:none so browser media engine keeps decoding frames for canvas
+        // Move video offscreen (not display:none) so decoder stays active
         video.style.setProperty('position', 'absolute', 'important');
+        video.style.setProperty('left', '-99999px', 'important');
+        video.style.setProperty('top', '0', 'important');
+        video.style.setProperty('width', '1px', 'important');
+        video.style.setProperty('height', '1px', 'important');
         video.style.setProperty('opacity', '0.001', 'important');
         video.style.setProperty('pointer-events', 'none', 'important');
-        video.style.setProperty('z-index', '-999', 'important');
 
         video.parentNode.insertBefore(canvas, video);
-      } else {
-        // Desktop: Override Elementor's default display:none on background videos
-        video.style.setProperty('display', 'block', 'important');
-        video.style.setProperty('opacity', '1', 'important');
-        video.style.setProperty('visibility', 'visible', 'important');
       }
 
       // Render video frame to canvas
