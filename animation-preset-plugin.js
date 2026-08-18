@@ -2009,10 +2009,10 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
   function initVideoGSAP() {
     const videoContainers = gsap.utils.toArray('.video-gsap-init');
 
-    // Detect iOS and general mobile
+    // Detect true mobile devices (avoiding Mac desktop trackpads)
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    const isMobile = isIOS || /Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1 && 'ontouchstart' in window);
+    const isMobile = isIOS || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
     // ── Shared mobile video unlock ──────────────────────────────
     const videosToUnlock = [];
@@ -2066,7 +2066,18 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
       video.muted = true;
       video.removeAttribute('autoplay');
       video.removeAttribute('loop');
-      video.pause();
+      
+      // Prime decoder engine so browser allows currentTime seek mutations
+      const primePlay = video.play();
+      if (primePlay !== undefined) {
+        primePlay.then(() => {
+          video.pause();
+        }).catch(() => {
+          video.pause();
+        });
+      } else {
+        video.pause();
+      }
 
       // Register for the shared unlock
       if (isMobile) {
