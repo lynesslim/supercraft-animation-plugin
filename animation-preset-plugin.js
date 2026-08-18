@@ -2124,8 +2124,10 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
 
       function smoothSeek() {
         rafPending = false;
-        if (Math.abs(video.currentTime - targetTime) > 0.01) {
-          video.currentTime = targetTime;
+        if (video.readyState >= 2 && Math.abs(video.currentTime - targetTime) > 0.01) {
+          try {
+            video.currentTime = targetTime;
+          } catch (e) {}
         }
         if (useCanvas) {
           renderFrame();
@@ -2156,29 +2158,34 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
           },
         });
 
-        if (isMobile) {
-          // Proxy approach for mobile (critical for iOS and Android rendering pipeline)
-          const proxy = { t: 0 };
-          tl.fromTo(proxy, { t: 0 }, {
-            t: duration,
-            onUpdate() {
-              targetTime = proxy.t;
+        const proxy = { t: 0 };
+        tl.fromTo(proxy, { t: 0 }, {
+          t: duration,
+          onUpdate() {
+            targetTime = proxy.t;
+            if (!useCanvas) {
+              if (video.readyState >= 2 && Math.abs(video.currentTime - targetTime) > 0.01) {
+                try {
+                  video.currentTime = targetTime;
+                } catch (e) {}
+              }
+            } else {
               if (!rafPending) {
                 rafPending = true;
                 requestAnimationFrame(smoothSeek);
               }
-            },
-          });
-        } else {
-          // Desktop: direct currentTime tween
-          tl.fromTo(video, { currentTime: 0 }, { currentTime: duration });
-        }
+            }
+          },
+        });
       }
 
       // ── Wait for video metadata ───────────────────────────────
+      let timelineInitialized = false;
       function initTimeline() {
+        if (timelineInitialized) return;
         const dur = video.duration;
         if (!dur || !isFinite(dur) || dur <= 0) return;
+        timelineInitialized = true;
         setupTimeline(dur);
         if (useCanvas) {
           // Render initial frame
@@ -2190,16 +2197,23 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
         initTimeline();
       } else {
         const onMeta = () => {
-          video.removeEventListener('loadedmetadata', onMeta);
-          clearTimeout(metaFallback);
-          initTimeline();
+          if (isFinite(video.duration) && video.duration > 0) {
+            video.removeEventListener('loadedmetadata', onMeta);
+            video.removeEventListener('durationchange', onMeta);
+            clearTimeout(metaFallback);
+            initTimeline();
+          }
         };
         video.addEventListener('loadedmetadata', onMeta);
+        video.addEventListener('durationchange', onMeta);
 
         const metaFallback = setTimeout(() => {
           video.removeEventListener('loadedmetadata', onMeta);
-          video.load();
-          video.addEventListener('loadedmetadata', () => initTimeline(), { once: true });
+          video.removeEventListener('durationchange', onMeta);
+          if (!timelineInitialized) {
+            video.load();
+            video.addEventListener('loadedmetadata', () => initTimeline(), { once: true });
+          }
         }, 5000);
       }
 
@@ -2214,15 +2228,38 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
           })
           .then((blob) => {
             const blobURL = URL.createObjectURL(blob);
-            const t = video.currentTime;
-            video.setAttribute('src', blobURL);
-            video.currentTime = t + 0.01;
+            const currentTimeBackup = video.currentTime || targetTime || 0;
+
+            // Remove child <source> tags to avoid conflict with direct video.src
+            const sources = video.querySelectorAll('source');
+            sources.forEach((s) => s.remove());
+
+            video.src = blobURL;
+            video.load();
+
+            const onBlobReady = () => {
+              video.removeEventListener('loadeddata', onBlobReady);
+              if (video.readyState >= 2) {
+                try {
+                  video.currentTime = currentTimeBackup;
+                } catch (e) {}
+              }
+              if (timelineInitialized === false) {
+                initTimeline();
+              }
+              if (useCanvas) {
+                setTimeout(renderFrame, 100);
+              }
+            };
+
+            if (video.readyState >= 2) {
+              onBlobReady();
+            } else {
+              video.addEventListener('loadeddata', onBlobReady, { once: true });
+            }
 
             if (isMobile && !mobileUnlocked) {
               videosToUnlock.push(video);
-            }
-            if (useCanvas) {
-              setTimeout(renderFrame, 200);
             }
           })
           .catch((err) => {
