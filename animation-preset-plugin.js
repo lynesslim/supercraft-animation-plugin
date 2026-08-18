@@ -2107,9 +2107,18 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
         canvas.style.objectFit = getComputedStyle(video).objectFit || 'cover';
         canvas.style.display = 'block';
 
-        // Hide video, insert canvas
-        video.style.display = 'none';
+        // Visually hide video without display:none so browser media engine keeps decoding frames for canvas
+        video.style.setProperty('position', 'absolute', 'important');
+        video.style.setProperty('opacity', '0.001', 'important');
+        video.style.setProperty('pointer-events', 'none', 'important');
+        video.style.setProperty('z-index', '-999', 'important');
+
         video.parentNode.insertBefore(canvas, video);
+      } else {
+        // Desktop: Override Elementor's default display:none on background videos
+        video.style.setProperty('display', 'block', 'important');
+        video.style.setProperty('opacity', '1', 'important');
+        video.style.setProperty('visibility', 'visible', 'important');
       }
 
       // Render video frame to canvas
