@@ -1330,11 +1330,11 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
     if (excludeOverlay) {
       // Skip .elementor-background-overlay (used by cinematic-gate which handles overlay separately)
       bgImage = container.querySelector(
-        '.elementor-background-slideshow__image, .elementor-background-slideshow, .elementor-background-image, .supercraft-dynamic-bg-layer'
+        '.elementor-background-slideshow, .elementor-background-slideshow__slide__image, .elementor-background-slideshow__image, .elementor-background-video-container, .elementor-background-image, .supercraft-dynamic-bg-layer'
       );
     } else {
       bgImage = container.querySelector(
-        '.elementor-background-overlay, .elementor-background-slideshow__image, .elementor-background-slideshow, .elementor-background-image, .supercraft-dynamic-bg-layer'
+        '.elementor-background-overlay, .elementor-background-slideshow, .elementor-background-slideshow__slide__image, .elementor-background-slideshow__image, .elementor-background-video-container, .elementor-background-image, .supercraft-dynamic-bg-layer'
       );
     }
 
@@ -1429,9 +1429,42 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
      Mask reveal for any container (center-out or directional)
      ========================================== */
   function initContainerReveal() {
-    const containers = gsap.utils.toArray('.container-reveal');
+    const containers = gsap.utils.toArray('.container-reveal, .container-reveal-scroll');
 
     containers.forEach((container) => {
+      // Setup MutationObserver to catch late-injected Elementor slideshow or video background elements
+      if (!container._supercraftBgObserver) {
+        container._supercraftBgObserver = new MutationObserver((mutations) => {
+          let shouldReinit = false;
+          for (const mutation of mutations) {
+            for (const node of mutation.addedNodes) {
+              if (node.nodeType === 1) {
+                if (
+                  node.classList.contains('elementor-background-slideshow') ||
+                  node.classList.contains('elementor-background-video-container') ||
+                  node.querySelector?.('.elementor-background-slideshow, .elementor-background-video-container')
+                ) {
+                  shouldReinit = true;
+                  break;
+                }
+              }
+            }
+            if (shouldReinit) break;
+          }
+          if (shouldReinit) {
+            delete container.dataset.containerRevealInit;
+            if (container._supercraftBgObserver) {
+              container._supercraftBgObserver.disconnect();
+              delete container._supercraftBgObserver;
+            }
+            setTimeout(() => {
+              initContainerReveal();
+            }, 50);
+          }
+        });
+        container._supercraftBgObserver.observe(container, { childList: true, subtree: true });
+      }
+
       if (container.dataset.containerRevealInit === 'true') return;
 
       const styles = getComputedStyle(container);
@@ -3713,6 +3746,14 @@ const activeIdleTimelines = new Map();
       if (window.ScrollTrigger) {
         ScrollTrigger.refresh();
       }
+      // Re-check container reveal in case Elementor initialized background slideshows late
+      const crContainers = document.querySelectorAll('.container-reveal, .container-reveal-scroll');
+      crContainers.forEach((c) => {
+        if (c.querySelector('.elementor-background-slideshow, .elementor-background-video-container')) {
+          delete c.dataset.containerRevealInit;
+        }
+      });
+      initContainerReveal();
     });
   }
   // Expose for editor preview tools
