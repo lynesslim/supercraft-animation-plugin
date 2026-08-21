@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Superanimate GSAP Elementor
  * Description: GSAP-based animation presets with Elementor controls.
- * Version: 0.5.8
+ * Version: 0.5.9
  * Author: Supercraft
  */
 
@@ -25,4 +25,11 @@ $supercraftUpdateChecker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::build
     'supercraft-animation-plugin'
 );
 $supercraftUpdateChecker->setBranch('main');
+
+// Set GitHub Personal Access Token if defined in wp-config.php or saved in settings (prevents 403 rate limit errors)
+$githubToken = defined('SUPERCRAFT_GITHUB_TOKEN') ? SUPERCRAFT_GITHUB_TOKEN : get_option('supercraft_github_token', '');
+if (!empty($githubToken)) {
+    $supercraftUpdateChecker->setAuthentication($githubToken);
+}
+
 

@@ -103,6 +103,9 @@ add_action('admin_post_supercraft_save_embed_code', function() {
     update_option('supercraft_last_validated', current_time('mysql'));
     $lenis_enabled = isset($_POST['supercraft_lenis_enabled']) ? '1' : '0';
     update_option('supercraft_lenis_enabled', $lenis_enabled);
+    if (isset($_POST['supercraft_github_token'])) {
+        update_option('supercraft_github_token', sanitize_text_field($_POST['supercraft_github_token']));
+    }
     wp_redirect(add_query_arg('updated', 'true', wp_get_referer()));
     exit;
 });
@@ -111,6 +114,9 @@ add_action('admin_post_supercraft_save_settings', function() {
     check_admin_referer('supercraft_save_settings');
     $lenis_enabled = isset($_POST['supercraft_lenis_enabled']) ? '1' : '0';
     update_option('supercraft_lenis_enabled', $lenis_enabled);
+    if (isset($_POST['supercraft_github_token'])) {
+        update_option('supercraft_github_token', sanitize_text_field($_POST['supercraft_github_token']));
+    }
     wp_redirect(add_query_arg('updated', 'true', wp_get_referer()));
     exit;
 });

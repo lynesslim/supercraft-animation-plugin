@@ -86,6 +86,20 @@ function supercraft_render_admin_page() {
                         <p class="description">Adds smooth scrolling effect. May cause slight delay with scrub animations.</p>
                     </td>
                 </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="supercraft_github_token">GitHub Access Token</label>
+                    </th>
+                    <td>
+                        <input type="password" 
+                               id="supercraft_github_token" 
+                               name="supercraft_github_token" 
+                               class="regular-text" 
+                               value="<?php echo esc_attr(get_option('supercraft_github_token', '')); ?>"
+                               placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+                        <p class="description">Optional. Enter a GitHub Personal Access Token (PAT) if your server encounters 403 API rate limit errors when checking for plugin updates. You can also define <code>SUPERCRAFT_GITHUB_TOKEN</code> in <code>wp-config.php</code>.</p>
+                    </td>
+                </tr>
             </table>
 
             <?php if (!$is_master_active && $status === 'valid'): ?>
