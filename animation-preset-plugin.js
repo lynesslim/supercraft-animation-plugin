@@ -1324,11 +1324,19 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
   }
 
   // Helper to safely locate or dynamically isolate a container's background image
-  function getOrCreateBgImage(container, styles) {
+  function getOrCreateBgImage(container, styles, excludeOverlay) {
     // 1. Try to find existing dedicated background/overlay elements
-    let bgImage = container.querySelector(
-      '.elementor-background-overlay, .elementor-background-slideshow__image, .elementor-background-slideshow, .elementor-background-image, .supercraft-dynamic-bg-layer'
-    );
+    let bgImage;
+    if (excludeOverlay) {
+      // Skip .elementor-background-overlay (used by cinematic-gate which handles overlay separately)
+      bgImage = container.querySelector(
+        '.elementor-background-slideshow__image, .elementor-background-slideshow, .elementor-background-image, .supercraft-dynamic-bg-layer'
+      );
+    } else {
+      bgImage = container.querySelector(
+        '.elementor-background-overlay, .elementor-background-slideshow__image, .elementor-background-slideshow, .elementor-background-image, .supercraft-dynamic-bg-layer'
+      );
+    }
 
     if (bgImage) return bgImage;
 
@@ -1682,7 +1690,7 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
             gsap.set(overlay, { autoAlpha: 0 });
           }
 
-          const bgImage = getOrCreateBgImage(container, styles);
+          const bgImage = getOrCreateBgImage(container, styles, true);
           if (bgImage) {
             gsap.set(bgImage, { scale: 1 });
           }
@@ -1792,7 +1800,7 @@ const lineByLine = parseBool(wrapper.dataset.scrollFillLine || 'false');
             gsap.set(overlay, { autoAlpha: 0 });
           }
 
-          const bgImage = getOrCreateBgImage(container, styles);
+          const bgImage = getOrCreateBgImage(container, styles, true);
           if (bgImage) {
             gsap.set(bgImage, { scale: 1 });
           }
